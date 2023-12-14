@@ -2,7 +2,7 @@ package grpc_microservice_starter
 
 import (
 	"context"
-	"log"
+	"go.uber.org/zap"
 	"net"
 	"net/http"
 
@@ -25,34 +25,37 @@ import (
 )
 
 type GrpcServerStarter struct {
-	GrpcServer   *grpc.Server
-	serverConfig ServerOptionsConfig
+	GrpcServer     *grpc.Server
+	config         Config
+	jaegerExporter jaeger.Exporter
+	logger         *zap.Logger
 }
 
-func NewGrpcServerStarter(serverConfig ServerOptionsConfig, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
+func NewGrpcServerStarter(serverConfig Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
+	metricsUnaryInterceptor := UnaryMetricsInterceptor(serverConfig.MetricsBind, wb_metrics.NewHTTPServerMetrics())
+
 	unaryInterceptors = append(unaryInterceptors,
 		otelgrpc.UnaryServerInterceptor(),
-		UnaryMetricsInterceptor(serverConfig.ServiceName, serverConfig.ServiceNamespace, serverConfig.MetricsBind, wb_metrics.NewHTTPServerMetrics()),
-		UnaryValidationInterceptor(),
+		metricsUnaryInterceptor,
+		ValidationUnaryInterceptor(),
 		grpc_recovery.UnaryServerInterceptor())
+
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			unaryInterceptors...,
 		))
+
+	logger, _ := zap.NewProduction()
 	return &GrpcServerStarter{
-		GrpcServer:   grpcServer,
-		serverConfig: serverConfig,
+		GrpcServer: grpcServer,
+		config:     serverConfig,
+		logger:     logger,
 	}
 }
 
-func (g *GrpcServerStarter) ServeGrpcAndHttpGateway(ctx context.Context, registerServiceFunc func(ctx context.Context, mux *grpc_runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)) error {
-	mux := grpc_runtime.NewServeMux(
-		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
-	)
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-
+func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(ctx context.Context, mux *grpc_runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)) error {
 	// Set up OTLP tracing (stdout for debug).
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(g.serverConfig.JaegerUrl)))
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(g.config.JaegerUrl)))
 	if err != nil {
 		return err
 	}
@@ -61,31 +64,80 @@ func (g *GrpcServerStarter) ServeGrpcAndHttpGateway(ctx context.Context, registe
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(g.serverConfig.ServiceName),
+			semconv.ServiceNameKey.String(g.config.ServiceName),
 		)),
 	)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	defer func() { _ = exp.Shutdown(context.Background()) }()
 
-	lis, err := net.Listen("tcp", g.serverConfig.GrpcBind)
+	lis, err := net.Listen("tcp", g.config.GrpcBind)
 	if err != nil {
-		log.Fatalln("Failed to listen:", err)
+		g.logger.Fatal("Failed to listen:", zap.Error(err))
 	}
 
-	err = registerServiceFunc(ctx, mux, g.serverConfig.GrpcBind, opts)
+	mux := grpc_runtime.NewServeMux(
+		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
+	)
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	err = registerServiceFunc(ctx, mux, g.config.GrpcBind, opts)
 	if err != nil {
 		return err
 	}
+
+	// Serve probes
+	go func() {
+		g.logger.Info("started probes on", zap.String("bind", g.config.ProbeBind))
+		startProbes(g.config, g.logger)
+	}()
 	// Serve gRPC Server
 	go func() {
-		log.Fatal(g.GrpcServer.Serve(lis))
+		g.logger.Info("started grpc server on", zap.String("bind", g.config.GrpcBind))
+		g.logger.Fatal("grpc server finished", zap.Error(g.GrpcServer.Serve(lis)))
+	}()
+	// Serve HTTP gateway
+	go func() {
+		g.logger.Info("started http gateway on", zap.String("bind", g.config.HttpBind))
+		g.logger.Fatal("http gateway finished", zap.Error(http.ListenAndServe(g.config.HttpBind, mux)))
 	}()
 
-	// Start HTTP server (and proxy calls to gRPC server endpoint)
-	log.Printf("started grpc server on %s\n", g.serverConfig.GrpcBind)
-	log.Printf("started http gateway on %s\n", g.serverConfig.HttpBind)
-	return http.ListenAndServe(g.serverConfig.HttpBind, mux)
+	return nil
+}
+
+func (g *GrpcServerStarter) Stop(ctx context.Context) {
+	err := g.jaegerExporter.Shutdown(ctx)
+	if err != nil {
+		g.logger.Warn("jaeger shutdown error", zap.Error(err))
+		return
+	}
+}
+
+func startProbes(cfg Config, logger *zap.Logger) {
+	if cfg.ProbeBind == "" {
+		logger.Error("Probes not started because bind parameter is empty")
+		return
+	}
+
+	http.HandleFunc("/alive", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("ok"))
+		if err != nil {
+			logger.Error("error responding to probe", zap.Error(err))
+		}
+	})
+	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("ok"))
+		if err != nil {
+			logger.Error("error responding to probe", zap.Error(err))
+		}
+	})
+	go func() {
+		logger.Info("Probe started on", zap.String("bind", cfg.ProbeBind))
+		if err := http.ListenAndServe(cfg.ProbeBind, nil); err != nil {
+			logger.Error("listen probe failed", zap.Error(err))
+		}
+	}()
 }
 
 func handleRoutingError(ctx context.Context, mux *grpc_runtime.ServeMux, marshaler grpc_runtime.Marshaler, w http.ResponseWriter, r *http.Request, httpStatus int) {

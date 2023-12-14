@@ -8,8 +8,6 @@ import (
 	"time"
 
 	wb_metrics "github.com/happywbfriends/metrics/v1"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -19,26 +17,11 @@ import (
 )
 
 type MetricsInterceptor struct {
-	serviceName string
-	metrics     metrics
+	wbMetrics wb_metrics.HTTPServerMetrics
 }
 
-type metrics struct {
-	totalRequests *prometheus.CounterVec
-	serverMetrics wb_metrics.HTTPServerMetrics
-}
-
-func UnaryMetricsInterceptor(serviceName, namespace, port string, wbMetrics wb_metrics.HTTPServerMetrics) func(
+func UnaryMetricsInterceptor(port string, wbMetrics wb_metrics.HTTPServerMetrics) func(
 	ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	totalRequests := promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: namespace,
-			Subsystem: "http",
-			Name:      "nb_req",
-			Help:      "Number of total requests.",
-		},
-		[]string{"status", "method"},
-	)
 	go func() {
 		log.Printf("Metrics started on %s", port)
 		if err := http.ListenAndServe(port, promhttp.Handler()); err != nil {
@@ -46,15 +29,14 @@ func UnaryMetricsInterceptor(serviceName, namespace, port string, wbMetrics wb_m
 		}
 	}()
 	return (&MetricsInterceptor{
-		serviceName: serviceName,
-		metrics:     metrics{totalRequests: totalRequests, serverMetrics: wbMetrics},
+		wbMetrics: wbMetrics,
 	}).MetricsInterceptorFunc
 }
 
 type ValidatorInterceptor struct {
 }
 
-func UnaryValidationInterceptor() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func ValidationUnaryInterceptor() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	return (&ValidatorInterceptor{}).ValidatorInterceptorFunc
 }
 
@@ -89,8 +71,8 @@ func (v *ValidatorInterceptor) ValidatorInterceptorFunc(ctx context.Context, req
 }
 
 func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	m.metrics.serverMetrics.IncNbConnections()
-	defer m.metrics.serverMetrics.IncNbConnections()
+	m.wbMetrics.IncNbConnections()
+	defer m.wbMetrics.IncNbConnections()
 	start := time.Now()
 
 	// Calls the handler
@@ -98,11 +80,11 @@ func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req int
 	h, err := handler(ctx, req)
 	respStatus, ok := status.FromError(err)
 	if !ok || respStatus.Code() != 0 {
-		m.metrics.serverMetrics.IncNbRequest(info.FullMethod, GrpcToHTTPCodesMapping(respStatus.Code()), 0)
-		m.metrics.serverMetrics.ObserveRequestDuration(info.FullMethod, GrpcToHTTPCodesMapping(respStatus.Code()), 0, time.Since(start))
+		m.wbMetrics.IncNbRequest(info.FullMethod, GrpcToHTTPCodesMapping(respStatus.Code()), 0)
+		m.wbMetrics.ObserveRequestDuration(info.FullMethod, GrpcToHTTPCodesMapping(respStatus.Code()), 0, time.Since(start))
 	} else {
-		m.metrics.serverMetrics.ObserveRequestDuration(info.FullMethod, http.StatusOK, 0, time.Since(start))
-		m.metrics.serverMetrics.IncNbRequest(info.FullMethod, http.StatusOK, 0)
+		m.wbMetrics.ObserveRequestDuration(info.FullMethod, http.StatusOK, 0, time.Since(start))
+		m.wbMetrics.IncNbRequest(info.FullMethod, http.StatusOK, 0)
 	}
 	log.Printf("metrics interceptor end time: %v", time.Now())
 
