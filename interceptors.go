@@ -3,7 +3,7 @@ package grpc_microservice_starter
 import (
 	"context"
 	"fmt"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 
@@ -18,26 +18,29 @@ import (
 
 type MetricsInterceptor struct {
 	wbMetrics wb_metrics.HTTPServerMetrics
+	logger    *zap.Logger
 }
 
-func UnaryMetricsInterceptor(port string, wbMetrics wb_metrics.HTTPServerMetrics) func(
+func UnaryMetricsInterceptor(port string, wbMetrics wb_metrics.HTTPServerMetrics, logger *zap.Logger) func(
 	ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	go func() {
-		log.Printf("Metrics started on %s", port)
+		logger.Info("Metrics started", zap.String("port", port))
 		if err := http.ListenAndServe(port, promhttp.Handler()); err != nil {
-			log.Printf("listen metrics finished: %v", err.Error())
+			logger.Error("listen metrics finished", zap.Error(err))
 		}
 	}()
 	return (&MetricsInterceptor{
 		wbMetrics: wbMetrics,
+		logger:    logger,
 	}).MetricsInterceptorFunc
 }
 
 type ValidatorInterceptor struct {
+	logger *zap.Logger
 }
 
-func ValidationUnaryInterceptor() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	return (&ValidatorInterceptor{}).ValidatorInterceptorFunc
+func ValidationUnaryInterceptor(logger *zap.Logger) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return (&ValidatorInterceptor{logger: logger}).ValidatorInterceptorFunc
 }
 
 // TODO ValidateAll
@@ -56,7 +59,7 @@ type validationErrorInterface interface {
 
 func (v *ValidatorInterceptor) ValidatorInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()
-	log.Printf("ValidatorInterceptorFunc start time: %v", start)
+	v.logger.Info("ValidatorInterceptorFunc start time", zap.Time("start", start))
 	err := req.(validatorLegacy).Validate()
 	if err != nil {
 		switch v := err.(type) {
@@ -66,7 +69,7 @@ func (v *ValidatorInterceptor) ValidatorInterceptorFunc(ctx context.Context, req
 		return nil, StatusFromCodeMessageDetails(codes.InvalidArgument, "ValidatorInterceptorFunc", err.Error())
 	}
 	h, err := handler(ctx, req)
-	log.Printf("ValidatorInterceptorFunc end time: %v", time.Now())
+	v.logger.Info("ValidatorInterceptorFunc end time", zap.Time("end", time.Now()))
 	return h, err
 }
 
@@ -76,7 +79,7 @@ func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req int
 	start := time.Now()
 
 	// Calls the handler
-	log.Printf("metrics interceptor start time: %v", start)
+	m.logger.Info("metrics interceptor start time", zap.Time("start", start))
 	h, err := handler(ctx, req)
 	respStatus, ok := status.FromError(err)
 	if !ok || respStatus.Code() != 0 {
@@ -86,7 +89,7 @@ func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req int
 		m.wbMetrics.ObserveRequestDuration(info.FullMethod, http.StatusOK, 0, time.Since(start))
 		m.wbMetrics.IncNbRequest(info.FullMethod, http.StatusOK, 0)
 	}
-	log.Printf("metrics interceptor end time: %v", time.Now())
+	m.logger.Info("metrics interceptor end time", zap.Time("end", time.Now()))
 
 	return h, err
 }

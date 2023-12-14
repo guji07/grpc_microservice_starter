@@ -32,12 +32,14 @@ type GrpcServerStarter struct {
 }
 
 func NewGrpcServerStarter(serverConfig Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
-	metricsUnaryInterceptor := UnaryMetricsInterceptor(serverConfig.MetricsBind, wb_metrics.NewHTTPServerMetrics())
+	logger, _ := zap.NewProduction()
+	metricsUnaryInterceptor := UnaryMetricsInterceptor(serverConfig.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
 
 	unaryInterceptors = append(unaryInterceptors,
+		//TODO Deprecated: Use [NewServerHandler] instead.
 		otelgrpc.UnaryServerInterceptor(),
 		metricsUnaryInterceptor,
-		ValidationUnaryInterceptor(),
+		ValidationUnaryInterceptor(logger),
 		grpc_recovery.UnaryServerInterceptor())
 
 	grpcServer := grpc.NewServer(
@@ -45,7 +47,6 @@ func NewGrpcServerStarter(serverConfig Config, unaryInterceptors []grpc.UnarySer
 			unaryInterceptors...,
 		))
 
-	logger, _ := zap.NewProduction()
 	return &GrpcServerStarter{
 		GrpcServer: grpcServer,
 		config:     serverConfig,
@@ -75,7 +76,6 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 	if err != nil {
 		g.logger.Fatal("Failed to listen:", zap.Error(err))
 	}
-
 	mux := grpc_runtime.NewServeMux(
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
 	)
