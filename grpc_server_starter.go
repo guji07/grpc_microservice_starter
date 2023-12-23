@@ -99,13 +99,11 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		}
 	}()
 
-	go func() {
-		g.logger.Info("started http gateway on", zap.String("bind", g.config.HttpBind))
-		err = http.ListenAndServe(g.config.HttpBind, mux)
-		if err != nil {
-			g.logger.Fatal("http gateway finished", zap.Error(err))
-		}
-	}()
+	g.logger.Info("started http gateway on", zap.String("bind", g.config.HttpBind))
+	err = http.ListenAndServe(g.config.HttpBind, mux)
+	if err != nil {
+		g.logger.Fatal("http gateway finished", zap.Error(err))
+	}
 
 	return err
 }
