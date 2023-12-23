@@ -43,10 +43,8 @@ func ValidationUnaryInterceptor(logger *zap.Logger) func(ctx context.Context, re
 	return (&ValidatorInterceptor{logger: logger}).ValidatorInterceptorFunc
 }
 
-// TODO ValidateAll
-// The validate interface prior to protoc-gen-validate v0.6.0.
-type validatorLegacy interface {
-	Validate() error
+type validator interface {
+	Validate(all bool) error
 }
 
 type validationErrorInterface interface {
@@ -57,14 +55,20 @@ type validationErrorInterface interface {
 	ErrorName() string
 }
 
+type validationMultiErrorInterface interface {
+	AllErrors() []error
+}
+
 func (v *ValidatorInterceptor) ValidatorInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()
 	v.logger.Info("ValidatorInterceptorFunc start time", zap.Time("start", start))
-	err := req.(validatorLegacy).Validate()
+	err := req.(validator).Validate(true)
 	if err != nil {
 		switch v := err.(type) {
 		case validationErrorInterface:
 			return nil, ConstructStatusValidationError(v.ErrorName(), v.Reason(), v.Field())
+		case validationMultiErrorInterface:
+			return nil, nil
 		}
 		return nil, StatusFromCodeMessageDetails(codes.InvalidArgument, "ValidatorInterceptorFunc", err.Error())
 	}

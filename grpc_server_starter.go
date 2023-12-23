@@ -93,15 +93,21 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 	// Serve gRPC Server
 	go func() {
 		g.logger.Info("started grpc server on", zap.String("bind", g.config.GrpcBind))
-		g.logger.Fatal("grpc server finished", zap.Error(g.GrpcServer.Serve(lis)))
-	}()
-	// Serve HTTP gateway
-	go func() {
-		g.logger.Info("started http gateway on", zap.String("bind", g.config.HttpBind))
-		g.logger.Fatal("http gateway finished", zap.Error(http.ListenAndServe(g.config.HttpBind, mux)))
+		err = g.GrpcServer.Serve(lis)
+		if err != nil {
+			g.logger.Fatal("grpc server finished", zap.Error(err))
+		}
 	}()
 
-	return nil
+	go func() {
+		g.logger.Info("started http gateway on", zap.String("bind", g.config.HttpBind))
+		err = http.ListenAndServe(g.config.HttpBind, mux)
+		if err != nil {
+			g.logger.Fatal("http gateway finished", zap.Error(err))
+		}
+	}()
+
+	return err
 }
 
 func (g *GrpcServerStarter) Stop(ctx context.Context) {
