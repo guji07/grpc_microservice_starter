@@ -62,15 +62,18 @@ type validationMultiErrorInterface interface {
 func (v *ValidatorInterceptor) ValidatorInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()
 	v.logger.Info("ValidatorInterceptorFunc start time", zap.Time("start", start))
-	err := req.(validator).Validate(true)
-	if err != nil {
-		switch v := err.(type) {
-		case validationErrorInterface:
-			return nil, ConstructStatusValidationError(v.ErrorName(), v.Reason(), v.Field())
-		case validationMultiErrorInterface:
-			return nil, nil
+	switch req.(type) {
+	case validator:
+		err := req.(validator).Validate(true)
+		if err != nil {
+			switch v := err.(type) {
+			case validationErrorInterface:
+				return nil, ConstructStatusValidationError(v.ErrorName(), v.Reason(), v.Field())
+			case validationMultiErrorInterface:
+				return nil, nil
+			}
+			return nil, StatusFromCodeMessageDetails(codes.InvalidArgument, "ValidatorInterceptorFunc", err.Error())
 		}
-		return nil, StatusFromCodeMessageDetails(codes.InvalidArgument, "ValidatorInterceptorFunc", err.Error())
 	}
 	h, err := handler(ctx, req)
 	v.logger.Info("ValidatorInterceptorFunc end time", zap.Time("end", time.Now()))
