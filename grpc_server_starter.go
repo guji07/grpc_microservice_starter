@@ -2,13 +2,13 @@ package grpc_microservice_starter
 
 import (
 	"context"
-	"go.uber.org/zap"
-	"net"
-	"net/http"
-
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/guji07/grpc_microservice_starter/interceptors"
+	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
 	wb_metrics "github.com/happywbfriends/metrics/v1"
+	"net"
+	"net/http"
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
@@ -17,7 +17,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
-
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -31,21 +31,29 @@ type GrpcServerStarter struct {
 	logger         *zap.Logger
 }
 
-func NewGrpcServerStarter(serverConfig Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
+func NewGrpcServerStarter(serverConfig Config, keycloakConfig keycloak.Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
 	logger, _ := zap.NewProduction()
-	metricsUnaryInterceptor := UnaryMetricsInterceptor(serverConfig.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
-
+	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(serverConfig.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
+	service, err := keycloak.NewService(context.Background(), &keycloakConfig, logger)
+	if err != nil {
+		logger.Fatal("can't get keycloak service", zap.Error(err))
+	}
 	unaryInterceptors = append(unaryInterceptors,
 		//TODO Deprecated: Use [NewServerHandler] instead.
 		otelgrpc.UnaryServerInterceptor(),
+		keycloak.NewInterceptor(service).KeycloakInterceptorFunc,
 		metricsUnaryInterceptor,
-		ValidationUnaryInterceptor(logger),
+		interceptors.ValidationUnaryInterceptor(logger),
 		grpc_recovery.UnaryServerInterceptor())
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			unaryInterceptors...,
-		))
+		),
+		grpc.ChainStreamInterceptor(
+			grpc_recovery.StreamServerInterceptor(),
+			otelgrpc.StreamServerInterceptor()),
+	)
 
 	return &GrpcServerStarter{
 		GrpcServer: grpcServer,
