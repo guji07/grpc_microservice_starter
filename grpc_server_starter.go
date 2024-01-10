@@ -41,8 +41,8 @@ func NewGrpcServerStarter(serverConfig Config, keycloakConfig keycloak.Config, u
 	unaryInterceptors = append(unaryInterceptors,
 		//TODO Deprecated: Use [NewServerHandler] instead.
 		otelgrpc.UnaryServerInterceptor(),
-		keycloak.NewInterceptor(service).KeycloakInterceptorFunc,
 		metricsUnaryInterceptor,
+		keycloak.NewInterceptor(service).KeycloakInterceptorFunc,
 		interceptors.ValidationUnaryInterceptor(logger),
 		grpc_recovery.UnaryServerInterceptor())
 
@@ -145,7 +145,6 @@ func startProbes(cfg Config, logger *zap.Logger) {
 		}
 	})
 	go func() {
-		logger.Info("Probe started on", zap.String("bind", cfg.ProbeBind))
 		if err := http.ListenAndServe(cfg.ProbeBind, nil); err != nil {
 			logger.Error("listen probe failed", zap.Error(err))
 		}

@@ -3,6 +3,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"net/url"
 	"strings"
 
@@ -43,7 +44,7 @@ func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface
 	// 2.2. Try to get the token...
 	token, err := i.keycloakService.GetToken(ctx, params.Code, i.getRedirectURI(md))
 	if err != nil {
-		i.keycloakService.logger.Errorf(err.Error())
+		i.keycloakService.logger.Error("getToken", zap.Error(err))
 		return i.returnRedirectJSON(ctx, md, "")
 	}
 
@@ -51,7 +52,7 @@ func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface
 	var parsedToken *ParsedToken
 	ctx, parsedToken, err = i.checkAndSaveToken(ctx, token.IDToken)
 	if err != nil {
-		i.keycloakService.logger.Errorf(err.Error())
+		i.keycloakService.logger.Error("checkAndSaveToken", zap.Error(err))
 		return i.returnRedirectJSON(ctx, md, "")
 	}
 
@@ -59,7 +60,7 @@ func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface
 	// * save user cookies
 	ctx, err = i.setUserCookies(ctx, parsedToken, token.ExpiresIn)
 	if err != nil {
-		i.keycloakService.logger.Errorf(err.Error())
+		i.keycloakService.logger.Error("setUserCookies", zap.Error(err))
 		return i.returnRedirectJSON(ctx, md, "")
 	}
 	// * save token in storage
@@ -92,7 +93,7 @@ func (i *Interceptor) isTokenInCookiesOk(ctx context.Context, md metadata.MD) bo
 	uuidCkStr, err := url.QueryUnescape(uuidCks[0])
 	if err != nil {
 		// Found the cookie, but error in decoding
-		i.keycloakService.logger.Errorf("Error unescaping cookie: %v", err)
+		i.keycloakService.logger.Error("url.QueryUnescape", zap.Error(err))
 		return false
 	}
 
@@ -105,7 +106,7 @@ func (i *Interceptor) isTokenInCookiesOk(ctx context.Context, md metadata.MD) bo
 	// Check the token (assuming checkAndSaveToken is adapted for gRPC)
 	_, _, err = i.checkAndSaveToken(ctx, tokenCk) // This function needs to be adapted for gRPC
 	if err != nil {
-		i.keycloakService.logger.Errorf("Error in checkAndSaveToken: %v", err)
+		i.keycloakService.logger.Error("checkAndSaveToken", zap.Error(err))
 		return false
 	}
 
