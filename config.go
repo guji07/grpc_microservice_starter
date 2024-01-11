@@ -1,9 +1,12 @@
 package grpc_microservice_starter
 
+import "github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
+
 type Config struct {
 	//structs
 	Server      ServerConfig      `envPrefix:"SERVER_"`
 	Interceptor InterceptorConfig `envPrefix:"INTERCEPTOR_"`
+	Keycloak    keycloak.Config   `envPrefix:"KEYCLOAK_"`
 	//non-group config values
 	ServiceName string `env:"SERVICE_NAME,required"`
 	JaegerUrl   string `env:"JAEGER_URL" envDefault:"http://jaeger-collector.tracing.svc:14268/api/traces"`

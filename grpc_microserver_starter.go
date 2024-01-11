@@ -33,24 +33,17 @@ type GrpcServerStarter struct {
 	logger         *zap.Logger
 }
 
-func NewGrpcServerStarter(serverConfig Config, keycloakConfig keycloak.Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
+func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
 	logger, _ := zap.NewProduction()
-	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(serverConfig.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
-	service, err := keycloak.NewService(context.Background(), &keycloakConfig, logger)
+	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(config.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
+	service, err := keycloak.NewService(context.Background(), &config.Keycloak, logger)
 	if err != nil {
 		logger.Fatal("can't get keycloak service", zap.Error(err))
 	}
-	unaryInterceptors = append(unaryInterceptors,
-		//TODO Deprecated: Use [NewServerHandler] instead.
-		otelgrpc.UnaryServerInterceptor(),
-		metricsUnaryInterceptor,
-		keycloak.NewInterceptor(service).KeycloakInterceptorFunc,
-		interceptors.ValidationUnaryInterceptor(logger),
-		grpc_recovery.UnaryServerInterceptor())
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			unaryInterceptors...,
+			initUnaryInterceptors(unaryInterceptors, config.Interceptor, metricsUnaryInterceptor, service, logger)...,
 		),
 		grpc.ChainStreamInterceptor(
 			grpc_recovery.StreamServerInterceptor(),
@@ -59,9 +52,31 @@ func NewGrpcServerStarter(serverConfig Config, keycloakConfig keycloak.Config, u
 
 	return &GrpcServerStarter{
 		GrpcServer: grpcServer,
-		config:     serverConfig,
+		config:     config,
 		logger:     logger,
 	}
+}
+
+func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
+	interceptorConfig InterceptorConfig,
+	metricsUnaryInterceptor func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error),
+	service *keycloak.Service,
+	logger *zap.Logger) []grpc.UnaryServerInterceptor {
+
+	if interceptorConfig.EnableKeycloakInterceptor {
+		unaryInterceptors = append(unaryInterceptors, keycloak.NewInterceptor(service).KeycloakInterceptorFunc)
+	}
+	if interceptorConfig.EnableValidationInterceptor {
+		unaryInterceptors = append(unaryInterceptors, interceptors.ValidationUnaryInterceptor(logger))
+	}
+	if interceptorConfig.EnableMetricsInterceptor {
+		unaryInterceptors = append(unaryInterceptors, metricsUnaryInterceptor)
+	}
+	unaryInterceptors = append(unaryInterceptors,
+		//TODO Deprecated: Use [NewServerHandler] instead.
+		otelgrpc.UnaryServerInterceptor(),
+		grpc_recovery.UnaryServerInterceptor())
+	return unaryInterceptors
 }
 
 func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(ctx context.Context, mux *grpc_runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)) error {
@@ -87,7 +102,6 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		g.logger.Fatal("Failed to listen:", zap.Error(err))
 	}
 	mux := grpc_runtime.NewServeMux(
-		//
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
 		//custom error handling - for example when no token to keycloak we return json with redirect_url
 		grpc_runtime.WithErrorHandler(g.httpErrorHandlerFunc),
