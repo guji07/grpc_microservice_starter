@@ -12,7 +12,6 @@ require (
 	github.com/happywbfriends/metrics v1.7.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.17.0
-	github.com/rs/zerolog v1.31.0
 	github.com/valyala/fasthttp v1.51.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1
 	go.opentelemetry.io/otel v1.21.0
@@ -34,8 +33,6 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect

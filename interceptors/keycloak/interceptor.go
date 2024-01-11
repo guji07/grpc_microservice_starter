@@ -3,6 +3,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	grpc_microservice_starter "github.com/guji07/grpc_microservice_starter/proto"
 	"go.uber.org/zap"
 	"net/url"
 	"strings"
@@ -160,18 +161,16 @@ func (i *Interceptor) getParams(md metadata.MD) (params *getTokenParams) {
 }
 
 // returnRedirectJSON creates an UnauthorizedResponse with a redirect URL.
-func (i *Interceptor) returnRedirectJSON(ctx context.Context, md metadata.MD, providedBackURL string) (*UnauthorizedResponse, error) {
+func (i *Interceptor) returnRedirectJSON(ctx context.Context, md metadata.MD, providedBackURL string) (*grpc_microservice_starter.RedirectResponse, error) {
 	if providedBackURL != "" {
-		return &UnauthorizedResponse{
-			RedirectURL: providedBackURL,
+		return &grpc_microservice_starter.RedirectResponse{
+			RedirectUrl: providedBackURL,
 		}, nil
 	}
 	backURL := i.getRedirectURI(md) // Assuming getRedirectURI is adapted for gRPC
 	u := i.keycloakService.GenerateAuthLink(backURL)
 
-	return &UnauthorizedResponse{
-		RedirectURL: u,
-	}, nil
+	return &grpc_microservice_starter.RedirectResponse{RedirectUrl: u}, nil
 }
 
 type UnauthorizedResponse struct {
