@@ -8,6 +8,7 @@ import (
 	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
 	grpc_microservice_starter "github.com/guji07/grpc_microservice_starter/proto"
 	wb_metrics "github.com/happywbfriends/metrics/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 	"net"
 	"net/http"
 
@@ -171,6 +172,7 @@ func handleRoutingError(ctx context.Context, mux *grpc_runtime.ServeMux, marshal
 // function for custom http answers, in our case: redirect urls to keycloak
 func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_runtime.ServeMux, m grpc_runtime.Marshaler, w http.ResponseWriter, req *http.Request, err error) {
 	s, ok := status.FromError(err)
+	//if we see that status error is not nil we try to handle it ourselves:
 	if !ok || s.Err() != nil {
 		if s.Code() == codes.Unauthenticated {
 			httpStatusError := grpc_runtime.HTTPStatusError{
@@ -179,14 +181,17 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(httpStatusError.HTTPStatus)
-			response := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
-			answer, _ := m.Marshal(response.String())
+			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+			msg, _ := protojson.Marshal(protoRedirect)
+			answer, _ := m.Marshal(msg)
 			_, err := w.Write(answer)
 			if err != nil {
 				g.logger.Fatal("error writing custom http response", zap.Error(err))
 			}
+			return
 		}
-		return
+		//if we don't have handling for this code than fall to grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
 	}
+	//default way of handling error
 	grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
 }
