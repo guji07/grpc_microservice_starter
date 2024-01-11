@@ -196,7 +196,9 @@ func (i *Interceptor) getRedirectURI(md metadata.MD) string {
 	}
 	if uri == "" {
 		// Fallback if the original URI is not set
-		md.Get("")
+		if reqUri := md.Get("RequestURI")[0]; len(reqUri) > 0 {
+			uri = md.Get("RequestURI")[0]
+		}
 	}
 
 	uri = i.addBackURL(md, uri)
