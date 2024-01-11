@@ -204,7 +204,7 @@ func (i *Interceptor) getRedirectURI(md metadata.MD) string {
 
 	// Extract the host from metadata, or use a default host
 	host := "" // Replace with your default or extract from metadata
-	if values, ok := md[":authority"]; ok && len(values) > 0 {
+	if values, ok := md["x-forwarded-host"]; ok && len(values) > 0 {
 		host = values[0]
 	}
 
