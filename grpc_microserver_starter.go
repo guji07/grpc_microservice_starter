@@ -2,16 +2,15 @@ package grpc_microservice_starter
 
 import (
 	"context"
+	"net"
+	"net/http"
+
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/guji07/grpc_microservice_starter/interceptors"
 	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
 	grpc_microservice_starter "github.com/guji07/grpc_microservice_starter/proto"
 	wb_metrics "github.com/happywbfriends/metrics/v1"
-	"google.golang.org/protobuf/encoding/protojson"
-	"net"
-	"net/http"
-
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -24,6 +23,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type GrpcServerStarter struct {

@@ -3,11 +3,12 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"net/url"
-	"strings"
 
 	proto "github.com/guji07/grpc_microservice_starter/proto"
 	"github.com/pkg/errors"

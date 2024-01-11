@@ -2,10 +2,11 @@ package storage
 
 import (
 	"context"
-	"github.com/go-redis/redis/v8"
-	"github.com/pkg/errors"
 	"sync"
 	"time"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/pkg/errors"
 )
 
 func NewRedisStorage(ctx context.Context, redisURL string) (*RedisStorage, error) {

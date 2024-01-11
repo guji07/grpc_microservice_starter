@@ -2,14 +2,14 @@ package keycloak
 
 import (
 	"context"
-	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak/storage"
-	"go.uber.org/zap"
 	"strings"
 
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak/storage"
 	"github.com/pkg/errors"
 	"github.com/valyala/fasthttp"
+	"go.uber.org/zap"
 )
 
 func NewService(ctx context.Context, conf *Config, logger *zap.Logger) (*Service, error) {

@@ -2,10 +2,11 @@ package http_mapping
 
 import (
 	"fmt"
+	"net/http"
+
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"net/http"
 )
 
 func GrpcToHTTPCodesMapping(code codes.Code) int {
