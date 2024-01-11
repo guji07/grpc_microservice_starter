@@ -35,7 +35,7 @@ type GrpcServerStarter struct {
 
 func NewGrpcServerStarter(serverConfig Config, keycloakConfig keycloak.Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
 	logger, _ := zap.NewProduction()
-	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(serverConfig.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
+	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(serverConfig.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
 	service, err := keycloak.NewService(context.Background(), &keycloakConfig, logger)
 	if err != nil {
 		logger.Fatal("can't get keycloak service", zap.Error(err))
@@ -82,7 +82,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	defer func() { _ = exp.Shutdown(context.Background()) }()
 
-	lis, err := net.Listen("tcp", g.config.GrpcBind)
+	lis, err := net.Listen("tcp", g.config.Server.GrpcBind)
 	if err != nil {
 		g.logger.Fatal("Failed to listen:", zap.Error(err))
 	}
@@ -94,27 +94,27 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		grpc_runtime.WithIncomingHeaderMatcher(CustomMatcher),
 	)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	err = registerServiceFunc(ctx, mux, g.config.GrpcBind, opts)
+	err = registerServiceFunc(ctx, mux, g.config.Server.GrpcBind, opts)
 	if err != nil {
 		return err
 	}
 
 	// Serve probes
 	go func() {
-		g.logger.Info("started probes on", zap.String("bind", g.config.ProbeBind))
+		g.logger.Info("started probes on", zap.String("bind", g.config.Server.ProbeBind))
 		startProbes(g.config, g.logger)
 	}()
 	// Serve gRPC Server
 	go func() {
-		g.logger.Info("started grpc server on", zap.String("bind", g.config.GrpcBind))
+		g.logger.Info("started grpc server on", zap.String("bind", g.config.Server.GrpcBind))
 		err = g.GrpcServer.Serve(lis)
 		if err != nil {
 			g.logger.Fatal("grpc server finished", zap.Error(err))
 		}
 	}()
 
-	g.logger.Info("started http gateway on", zap.String("bind", g.config.HttpBind))
-	err = http.ListenAndServe(g.config.HttpBind, mux)
+	g.logger.Info("started http gateway on", zap.String("bind", g.config.Server.HttpBind))
+	err = http.ListenAndServe(g.config.Server.HttpBind, mux)
 	if err != nil {
 		g.logger.Fatal("http gateway finished", zap.Error(err))
 	}
@@ -131,7 +131,7 @@ func (g *GrpcServerStarter) Stop(ctx context.Context) {
 }
 
 func startProbes(cfg Config, logger *zap.Logger) {
-	if cfg.ProbeBind == "" {
+	if cfg.Server.ProbeBind == "" {
 		logger.Error("Probes not started because bind parameter is empty")
 		return
 	}
@@ -151,7 +151,7 @@ func startProbes(cfg Config, logger *zap.Logger) {
 		}
 	})
 	go func() {
-		if err := http.ListenAndServe(cfg.ProbeBind, nil); err != nil {
+		if err := http.ListenAndServe(cfg.Server.ProbeBind, nil); err != nil {
 			logger.Error("listen probe failed", zap.Error(err))
 		}
 	}()
