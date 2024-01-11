@@ -210,6 +210,21 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 	//if we see that status error is not nil we try to handle it ourselves:
 	if !ok || s.Err() != nil {
 		if s.Code() == codes.Unauthenticated {
+			if s.Details()[0] == nil {
+				httpStatusError := grpc_runtime.HTTPStatusError{
+					HTTPStatus: http.StatusSeeOther,
+					Err:        err,
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(httpStatusError.HTTPStatus)
+				protoRedirect := (s.Details()[1]).(*grpc_microservice_starter.RedirectResponse)
+				msg, _ := protojson.Marshal(protoRedirect)
+				_, err := w.Write(msg)
+				if err != nil {
+					g.logger.Fatal("error writing custom http response", zap.Error(err))
+				}
+				return
+			}
 			httpStatusError := grpc_runtime.HTTPStatusError{
 				HTTPStatus: http.StatusUnauthorized,
 				Err:        err,
