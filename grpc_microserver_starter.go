@@ -171,7 +171,7 @@ func handleRoutingError(ctx context.Context, mux *grpc_runtime.ServeMux, marshal
 // function for custom http answers, in our case: redirect urls to keycloak
 func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_runtime.ServeMux, m grpc_runtime.Marshaler, w http.ResponseWriter, req *http.Request, err error) {
 	s, ok := status.FromError(err)
-	if !ok {
+	if !ok || s.Err() == nil {
 		if s.Code() == codes.Unauthenticated {
 			httpStatusError := grpc_runtime.HTTPStatusError{
 				HTTPStatus: http.StatusUnauthorized,
