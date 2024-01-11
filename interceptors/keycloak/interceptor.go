@@ -87,13 +87,20 @@ func (i *Interceptor) getBackURL(md metadata.MD) string {
 
 // isTokenInCookiesOk checks if the token in cookies is valid in a gRPC context.
 func (i *Interceptor) isTokenInCookiesOk(ctx context.Context, md metadata.MD) bool {
-	uuidCks, ok := md[CookieName_UUID]
-	if !ok || len(uuidCks) == 0 {
-		// UUID cookie not found
+	uuidCks := ""
+	cookies, ok := md["grpcgateway-cookie"]
+	if !ok || len(cookies) == 0 {
+		// metadata cookie not found
 		return false
 	}
+	cookiesArray := strings.Split(cookies[0], ",")
+	for _, v := range cookiesArray {
+		if strings.Contains(v, CookieName_UUID) {
+			_, uuidCks, _ = strings.Cut(v, "=")
+		}
+	}
 
-	uuidCkStr, err := url.QueryUnescape(uuidCks[0])
+	uuidCkStr, err := url.QueryUnescape(uuidCks)
 	if err != nil {
 		// Found the cookie, but error in decoding
 		i.keycloakService.logger.Error("url.QueryUnescape", zap.Error(err))
