@@ -87,8 +87,11 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		g.logger.Fatal("Failed to listen:", zap.Error(err))
 	}
 	mux := grpc_runtime.NewServeMux(
+		//
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
+		//custom error handling - for example when no token to keycloak we return json with redirect_url
 		grpc_runtime.WithErrorHandler(g.httpErrorHandlerFunc),
+		grpc_runtime.WithIncomingHeaderMatcher(CustomMatcher),
 	)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	err = registerServiceFunc(ctx, mux, g.config.GrpcBind, opts)
@@ -193,4 +196,13 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 	}
 	//default way of handling error
 	grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
+}
+
+func CustomMatcher(key string) (string, bool) {
+	switch key {
+	case "X-Original-Request-Uri":
+		return key, true
+	default:
+		return grpc_runtime.DefaultHeaderMatcher(key)
+	}
 }
