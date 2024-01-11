@@ -171,21 +171,22 @@ func handleRoutingError(ctx context.Context, mux *grpc_runtime.ServeMux, marshal
 // function for custom http answers, in our case: redirect urls to keycloak
 func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_runtime.ServeMux, m grpc_runtime.Marshaler, w http.ResponseWriter, req *http.Request, err error) {
 	s, ok := status.FromError(err)
-	if ok {
-		grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
-	}
-	if s.Code() == codes.Unauthenticated {
-		httpStatusError := grpc_runtime.HTTPStatusError{
-			HTTPStatus: http.StatusUnauthorized,
-			Err:        err,
+	if !ok {
+		if s.Code() == codes.Unauthenticated {
+			httpStatusError := grpc_runtime.HTTPStatusError{
+				HTTPStatus: http.StatusUnauthorized,
+				Err:        err,
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(httpStatusError.HTTPStatus)
+			response := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+			answer, _ := m.Marshal(response.String())
+			_, err := w.Write(answer)
+			if err != nil {
+				g.logger.Fatal("error writing custom http response", zap.Error(err))
+			}
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(httpStatusError.HTTPStatus)
-		response := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
-		answer, _ := m.Marshal(response.String())
-		_, err := w.Write(answer)
-		if err != nil {
-			g.logger.Fatal("error writing custom http response", zap.Error(err))
-		}
+		return
 	}
+	grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
 }
