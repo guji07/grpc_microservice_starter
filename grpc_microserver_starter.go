@@ -6,6 +6,7 @@ import (
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/guji07/grpc_microservice_starter/interceptors"
 	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
+	grpc_microservice_starter "github.com/guji07/grpc_microservice_starter/proto"
 	wb_metrics "github.com/happywbfriends/metrics/v1"
 	"net"
 	"net/http"
@@ -180,7 +181,9 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(httpStatusError.HTTPStatus)
-		_, err := w.Write((s.Details()[0]).([]byte))
+		response := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+		answer, _ := m.Marshal(response.String())
+		_, err := w.Write(answer)
 		if err != nil {
 			g.logger.Fatal("error writing custom http response", zap.Error(err))
 		}
