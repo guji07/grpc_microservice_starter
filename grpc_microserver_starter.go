@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -110,6 +111,14 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		g.logger.Fatal("Failed to listen:", zap.Error(err))
 	}
 	mux := grpc_runtime.NewServeMux(
+		grpc_runtime.WithMetadata(func(_ context.Context, req *http.Request) metadata.MD {
+			return metadata.New(map[string]string{
+				keycloak.ParamName_State:        req.URL.Query().Get(keycloak.ParamName_State),
+				keycloak.ParamName_Code:         req.URL.Query().Get(keycloak.ParamName_Code),
+				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
+				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
+			})
+		}),
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
 		//custom error handling - for example when no token to keycloak we return json with redirect_url
 		grpc_runtime.WithErrorHandler(g.httpErrorHandlerFunc),
