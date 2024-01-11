@@ -223,9 +223,9 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 				g.logger.Fatal("error writing custom http response", zap.Error(err))
 			}
 			return
-		} else if s.Code() == 303 {
+		} else if s.Code() == 307 {
 			httpStatusError := grpc_runtime.HTTPStatusError{
-				HTTPStatus: http.StatusSeeOther,
+				HTTPStatus: http.StatusTemporaryRedirect,
 				Err:        err,
 			}
 			w.Header().Set("Content-Type", "application/json")

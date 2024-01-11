@@ -172,7 +172,7 @@ func (i *Interceptor) getParams(md metadata.MD) (params *getTokenParams) {
 func (i *Interceptor) returnRedirectJSON(_ context.Context, md metadata.MD, providedBackURL string) (*proto.RedirectResponse, error) {
 	statusError := status.New(codes.Unauthenticated, "redirect to keycloak")
 	if providedBackURL != "" {
-		st, _ := status.New(303, "redirect to keycloak").WithDetails(&proto.RedirectResponse{}, &proto.RedirectResponse{RedirectUrl: providedBackURL})
+		st, _ := status.New(307, "redirect to keycloak").WithDetails(&proto.RedirectResponse{}, &proto.RedirectResponse{RedirectUrl: providedBackURL})
 		return nil, st.Err()
 	}
 	backURL := i.getRedirectURI(md) // Assuming getRedirectURI is adapted for gRPC
@@ -215,7 +215,7 @@ func (i *Interceptor) getRedirectURI(md metadata.MD) string {
 func (i *Interceptor) addBackURL(md metadata.MD, uri string) string {
 	// Extract the referer from metadata
 	ref := ""
-	if values, ok := md["Referer"]; ok && len(values) > 0 {
+	if values, ok := md["grpcgateway-referer"]; ok && len(values) > 0 {
 		ref = values[0]
 	}
 	if ref == "" {
