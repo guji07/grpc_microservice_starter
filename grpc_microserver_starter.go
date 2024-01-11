@@ -183,8 +183,7 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 			w.WriteHeader(httpStatusError.HTTPStatus)
 			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
 			msg, _ := protojson.Marshal(protoRedirect)
-			answer, _ := m.Marshal(msg)
-			_, err := w.Write(answer)
+			_, err := w.Write(msg)
 			if err != nil {
 				g.logger.Fatal("error writing custom http response", zap.Error(err))
 			}
