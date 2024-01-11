@@ -93,7 +93,7 @@ func (i *Interceptor) isTokenInCookiesOk(ctx context.Context, md metadata.MD) bo
 		// metadata cookie not found
 		return false
 	}
-	cookiesArray := strings.Split(cookies[0], ",")
+	cookiesArray := strings.Split(cookies[0], ";")
 	for _, v := range cookiesArray {
 		if strings.Contains(v, CookieName_UUID) {
 			_, uuidCks, _ = strings.Cut(v, "=")
