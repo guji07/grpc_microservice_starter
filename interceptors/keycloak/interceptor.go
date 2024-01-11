@@ -6,15 +6,13 @@ import (
 	"net/url"
 	"strings"
 
-	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	proto "github.com/guji07/grpc_microservice_starter/proto"
 	"github.com/pkg/errors"
-
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type Interceptor struct {
@@ -198,7 +196,7 @@ func (i *Interceptor) getRedirectURI(md metadata.MD) string {
 	}
 	if uri == "" {
 		// Fallback if the original URI is not set
-		uri = "/" // Default fallback URI
+		md.Get("")
 	}
 
 	uri = i.addBackURL(md, uri)
