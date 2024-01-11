@@ -33,6 +33,14 @@ type GrpcServerStarter struct {
 	logger         *zap.Logger
 }
 
+// NewGrpcServerStarter - main function of library
+// to use library:
+// create new GrpcServerStarter with Config
+// register your YourController with proto.RegisterYourServiceServer(GrpcServerStarter, YourController), where proto -
+//
+//	name of the package with generated code
+//
+// start if err := GrpcServerStarter.Start(ctx, proto.RegisterYourServiceHandlerFromEndpoint); err != nil { serverStarter.Stop(ctx) }
 func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
 	logger, _ := zap.NewProduction()
 	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(config.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
