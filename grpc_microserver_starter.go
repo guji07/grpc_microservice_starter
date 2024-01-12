@@ -209,6 +209,39 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 	s, ok := status.FromError(err)
 	//if we see that status error is not nil we try to handle it ourselves:
 	if !ok || s.Err() != nil {
+		// TODO:
+		//md, ok := runtime.ServerMetadataFromContext(ctx)
+		//	if !ok {
+		//		return nil
+		//	}
+		//  if vals := md.HeaderMD.Get("x-http-code"); len(vals) > 0 {
+		//		code, err := strconv.Atoi(vals[0])
+		//		switch code {
+		//		401: {
+		//			httpStatusError := grpc_runtime.HTTPStatusError{
+		//				HTTPStatus: http.StatusUnauthorized,
+		//				Err:        err,
+		//			}
+		//			w.Header().Set("Content-Type", "application/json")
+		//			w.WriteHeader(httpStatusError.HTTPStatus)
+		//			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+		//			protoRedirect.Cookies = nil
+		//			msg, _ := protojson.Marshal(protoRedirect)
+		//			_, err := w.Write(msg)
+		//			if err != nil {
+		//				g.logger.Fatal("error writing custom http response", zap.Error(err))
+		//			}
+		//			return
+		//}
+		//
+		//		307: write cookies + http.Redirect(w, req, protoRedirect.RedirectUrl, http.StatusTemporaryRedirect)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	delete(md.HeaderMD, "x-http-code")
+		//	delete(w.Header(), "Grpc-Metadata-X-Http-Code")
+		//	w.WriteHeader(code)
+		//}
 		if s.Code() == codes.Unauthenticated {
 			httpStatusError := grpc_runtime.HTTPStatusError{
 				HTTPStatus: http.StatusUnauthorized,

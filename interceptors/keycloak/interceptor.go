@@ -60,7 +60,7 @@ func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface
 
 	// 2.4. Token is valid. Save user cookies
 	// * save user cookies
-	ctx, err = i.setUserCookies(ctx, parsedToken, token.ExpiresIn)
+	md, err = i.setUserCookies(md, parsedToken, token.ExpiresIn)
 	if err != nil {
 		i.keycloakService.logger.Error("setUserCookies", zap.Error(err))
 		return i.returnRedirectJSON(ctx, md, "")
@@ -172,8 +172,9 @@ func (i *Interceptor) getParams(md metadata.MD) (params *getTokenParams) {
 func (i *Interceptor) returnRedirectJSON(_ context.Context, md metadata.MD, providedBackURL string) (*proto.RedirectResponse, error) {
 	statusError := status.New(codes.Unauthenticated, "redirect to keycloak")
 	if providedBackURL != "" {
-		cookies := md.Get("Set-Cookie")
-		st, _ := status.New(307, "redirect to back_url").WithDetails(&proto.RedirectResponse{RedirectUrl: providedBackURL, Cookies: cookies})
+		st, _ := status.New(307, "redirect to back_url").WithDetails(&proto.RedirectResponse{
+			RedirectUrl: providedBackURL,
+			Cookies:     md.Get("Set-Cookie")})
 		return nil, st.Err()
 	}
 	backURL := i.getRedirectURI(md) // Assuming getRedirectURI is adapted for gRPC
@@ -233,10 +234,8 @@ func (i *Interceptor) addBackURL(md metadata.MD, uri string) string {
 	return uri
 }
 
-// setUserCookies sets user cookies in a gRPC context.
-func (i *Interceptor) setUserCookies(ctx context.Context, parsedToken *ParsedToken, maxAge int) (context.Context, error) {
-	md := metadata.MD{}
-
+// setUserCookies sets user cookies in a grpc metadata
+func (i *Interceptor) setUserCookies(md metadata.MD, parsedToken *ParsedToken, maxAge int) (metadata.MD, error) {
 	// Helper function to create cookie string
 	createCookie := func(name, value string, maxage int, httpOnly bool) string {
 		cookie := fmt.Sprintf("%s=%s; Max-Age=%d", name, url.QueryEscape(value), maxage)
@@ -251,8 +250,5 @@ func (i *Interceptor) setUserCookies(ctx context.Context, parsedToken *ParsedTok
 	md.Append("Set-Cookie", createCookie(CookieName_UserName, parsedToken.UserName, maxAge, false))
 	md.Append("Set-Cookie", createCookie(CookieName_UUID, parsedToken.UUID, maxAge, true))
 
-	// Attach the metadata with cookies to the context
-	newCtx := metadata.NewOutgoingContext(ctx, md)
-
-	return newCtx, nil
+	return md, nil
 }
