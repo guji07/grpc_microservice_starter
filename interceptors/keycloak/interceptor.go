@@ -3,7 +3,9 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	proto "github.com/guji07/grpc_microservice_starter/proto"
@@ -172,7 +174,8 @@ func (i *Interceptor) getParams(md metadata.MD) (params *getTokenParams) {
 func (i *Interceptor) returnRedirectJSON(_ context.Context, md metadata.MD, providedBackURL string) (*proto.RedirectResponse, error) {
 	statusError := status.New(codes.Unauthenticated, "redirect to keycloak")
 	if providedBackURL != "" {
-		st, _ := status.New(307, "redirect to back_url").WithDetails(&proto.RedirectResponse{
+		md.Set("x-http-status-code", strconv.Itoa(http.StatusSeeOther))
+		st, _ := status.New(codes.Unauthenticated, "redirect to back_url").WithDetails(&proto.RedirectResponse{
 			RedirectUrl: providedBackURL,
 			Cookies:     md.Get("Set-Cookie")})
 		return nil, st.Err()
