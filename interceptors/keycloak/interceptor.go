@@ -172,7 +172,8 @@ func (i *Interceptor) getParams(md metadata.MD) (params *getTokenParams) {
 func (i *Interceptor) returnRedirectJSON(_ context.Context, md metadata.MD, providedBackURL string) (*proto.RedirectResponse, error) {
 	statusError := status.New(codes.Unauthenticated, "redirect to keycloak")
 	if providedBackURL != "" {
-		st, _ := status.New(307, "redirect to keycloak").WithDetails(&proto.RedirectResponse{}, &proto.RedirectResponse{RedirectUrl: providedBackURL})
+		cookies := md.Get("Set-Cookie")
+		st, _ := status.New(307, "redirect to back_url").WithDetails(&proto.RedirectResponse{RedirectUrl: providedBackURL, Cookies: cookies})
 		return nil, st.Err()
 	}
 	backURL := i.getRedirectURI(md) // Assuming getRedirectURI is adapted for gRPC

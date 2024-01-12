@@ -217,6 +217,7 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(httpStatusError.HTTPStatus)
 			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+			protoRedirect.Cookies = nil
 			msg, _ := protojson.Marshal(protoRedirect)
 			_, err := w.Write(msg)
 			if err != nil {
@@ -225,6 +226,9 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 			return
 		} else if s.Code() == 307 {
 			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+			for _, v := range protoRedirect.Cookies {
+				w.Header().Add("Set-Cookie", v)
+			}
 			http.Redirect(w, req, protoRedirect.RedirectUrl, http.StatusTemporaryRedirect)
 		}
 		//if we don't have handling for this code than fall to grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
