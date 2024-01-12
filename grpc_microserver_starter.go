@@ -224,19 +224,8 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 			}
 			return
 		} else if s.Code() == 307 {
-			httpStatusError := grpc_runtime.HTTPStatusError{
-				HTTPStatus: http.StatusTemporaryRedirect,
-				Err:        err,
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(httpStatusError.HTTPStatus)
 			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
-			msg, _ := protojson.Marshal(protoRedirect)
-			_, err := w.Write(msg)
-			if err != nil {
-				g.logger.Fatal("error writing custom http response", zap.Error(err))
-			}
-			return
+			http.Redirect(w, req, protoRedirect.RedirectUrl, http.StatusTemporaryRedirect)
 		}
 		//if we don't have handling for this code than fall to grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
 	}
