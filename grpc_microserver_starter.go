@@ -117,6 +117,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 				keycloak.ParamName_State:        req.URL.Query().Get(keycloak.ParamName_State),
 				keycloak.ParamName_Code:         req.URL.Query().Get(keycloak.ParamName_Code),
 				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
+				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
 				"RequestURI":                    req.URL.RequestURI(),
 			})
 		}),
@@ -273,8 +274,6 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 func CustomMatcher(key string) (string, bool) {
 	switch textproto.CanonicalMIMEHeaderKey(key) {
 	case "X-Original-Request-Uri":
-		return key, true
-	case "Backurl":
 		return key, true
 	default:
 		return grpc_runtime.DefaultHeaderMatcher(key)
