@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/textproto"
+	"strconv"
 
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -243,31 +244,41 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 		//	delete(w.Header(), "Grpc-Metadata-X-Http-Code")
 		//	w.WriteHeader(code)
 		//}
-		if s.Code() == codes.Unauthenticated {
-			httpStatusError := grpc_runtime.HTTPStatusError{
-				HTTPStatus: http.StatusUnauthorized,
-				Err:        err,
+		vals := metadata.ValueFromIncomingContext(ctx, "x-http-status-code")
+		if len(vals) > 0 {
+			code, _ := strconv.Atoi(vals[0])
+			switch code {
+			case http.StatusTemporaryRedirect:
+				{
+					protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+					for _, v := range protoRedirect.Cookies {
+						w.Header().Add("Set-Cookie", v)
+					}
+					http.Redirect(w, req, protoRedirect.RedirectUrl, http.StatusTemporaryRedirect)
+					return
+				}
+			case http.StatusUnauthorized:
+				{
+					httpStatusError := grpc_runtime.HTTPStatusError{
+						HTTPStatus: http.StatusUnauthorized,
+						Err:        err,
+					}
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(httpStatusError.HTTPStatus)
+					protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
+					protoRedirect.Cookies = nil
+					msg, _ := protojson.Marshal(protoRedirect)
+					_, err := w.Write(msg)
+					if err != nil {
+						g.logger.Fatal("error writing custom http response", zap.Error(err))
+					}
+					return
+				}
+				// if we don't have handling for this code than fall to
+				// grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
 			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(httpStatusError.HTTPStatus)
-			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
-			protoRedirect.Cookies = nil
-			msg, _ := protojson.Marshal(protoRedirect)
-			_, err := w.Write(msg)
-			if err != nil {
-				g.logger.Fatal("error writing custom http response", zap.Error(err))
-			}
-			return
-		} else if s.Code() == 307 {
-			protoRedirect := (s.Details()[0]).(*grpc_microservice_starter.RedirectResponse)
-			for _, v := range protoRedirect.Cookies {
-				w.Header().Add("Set-Cookie", v)
-			}
-			http.Redirect(w, req, protoRedirect.RedirectUrl, http.StatusTemporaryRedirect)
 		}
-		//if we don't have handling for this code than fall to grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
 	}
-	//default way of handling error
 	grpc_runtime.DefaultHTTPErrorHandler(ctx, mux, m, w, req, err)
 }
 
