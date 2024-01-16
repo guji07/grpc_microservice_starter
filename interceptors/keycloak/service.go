@@ -44,7 +44,7 @@ const (
 	ParamName_State        = "state"
 	ParamName_Code         = "code"
 	ParamName_SessionState = "session_state"
-	ParamName_BackURL      = "backURL"
+	ParamName_BackURL      = "backurl"
 )
 
 type getTokenParams struct {
