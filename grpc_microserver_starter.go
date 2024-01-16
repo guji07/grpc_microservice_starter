@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/textproto"
 
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -271,7 +272,7 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 }
 
 func CustomMatcher(key string) (string, bool) {
-	switch key {
+	switch textproto.CanonicalMIMEHeaderKey(key) {
 	case "X-Original-Request-Uri":
 		return key, true
 	case "backURL":
