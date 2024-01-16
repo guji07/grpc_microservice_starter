@@ -19,14 +19,15 @@ import (
 
 type Interceptor struct {
 	keycloakService *Service
+	EscapePrefix    string `env:"KEYCLOAK_ESCAPE_PREFIX,default:/srv"` // Prefix, с которым интерсептор кейклока не будет вызываться
 }
 
 func NewInterceptor(keycloakService *Service) *Interceptor {
 	return &Interceptor{keycloakService: keycloakService}
 }
 
-func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	if !i.keycloakService.config.IsEnabled {
+func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	if !i.keycloakService.config.IsEnabled || strings.HasPrefix(info.FullMethod, i.EscapePrefix) {
 		return handler(ctx, req)
 	}
 	md, ok := metadata.FromIncomingContext(ctx)
