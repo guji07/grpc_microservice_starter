@@ -244,8 +244,8 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 		//	delete(w.Header(), "Grpc-Metadata-X-Http-Code")
 		//	w.WriteHeader(code)
 		//}
-		md, _ := metadata.FromOutgoingContext(ctx) //, "x-http-status-code")
-		statusCodes := md.Get("x-http-status-code")
+		md, _ := grpc_runtime.ServerMetadataFromContext(ctx)
+		statusCodes := md.HeaderMD.Get("x-http-status-code")
 		if len(statusCodes) > 0 {
 			code, _ := strconv.Atoi(statusCodes[0])
 			switch code {
