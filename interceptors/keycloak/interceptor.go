@@ -19,11 +19,11 @@ import (
 
 type Interceptor struct {
 	keycloakService *Service
-	EscapePrefix    string `env:"KEYCLOAK_ESCAPE_PREFIX" envDefault:"/srv"` // Prefix, с которым интерсептор кейклока не будет вызываться
+	EscapePrefix    string
 }
 
-func NewInterceptor(keycloakService *Service) *Interceptor {
-	return &Interceptor{keycloakService: keycloakService}
+func NewInterceptor(keycloakService *Service, escapePrefix string) *Interceptor {
+	return &Interceptor{keycloakService: keycloakService, EscapePrefix: escapePrefix}
 }
 
 func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {

@@ -73,7 +73,7 @@ func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
 	logger *zap.Logger) []grpc.UnaryServerInterceptor {
 
 	if interceptorConfig.EnableKeycloakInterceptor {
-		unaryInterceptors = append(unaryInterceptors, keycloak.NewInterceptor(service).KeycloakInterceptorFunc)
+		unaryInterceptors = append(unaryInterceptors, keycloak.NewInterceptor(service, interceptorConfig.EscapePrefix).KeycloakInterceptorFunc)
 	}
 	if interceptorConfig.EnableValidationInterceptor {
 		unaryInterceptors = append(unaryInterceptors, interceptors.ValidationUnaryInterceptor(logger))
