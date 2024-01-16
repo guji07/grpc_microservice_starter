@@ -275,8 +275,8 @@ func CustomMatcher(key string) (string, bool) {
 	switch textproto.CanonicalMIMEHeaderKey(key) {
 	case "X-Original-Request-Uri":
 		return key, true
-	case "backURL":
-		return "backurl", true
+	case "Backurl":
+		return key, true
 	default:
 		return grpc_runtime.DefaultHeaderMatcher(key)
 	}
