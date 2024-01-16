@@ -19,7 +19,7 @@ import (
 
 type Interceptor struct {
 	keycloakService *Service
-	EscapePrefix    string `env:"KEYCLOAK_ESCAPE_PREFIX,default:/srv"` // Prefix, с которым интерсептор кейклока не будет вызываться
+	EscapePrefix    string `env:"KEYCLOAK_ESCAPE_PREFIX" envDefault:"/srv"` // Prefix, с которым интерсептор кейклока не будет вызываться
 }
 
 func NewInterceptor(keycloakService *Service) *Interceptor {
