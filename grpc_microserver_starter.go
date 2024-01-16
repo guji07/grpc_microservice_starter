@@ -274,6 +274,8 @@ func CustomMatcher(key string) (string, bool) {
 	switch key {
 	case "X-Original-Request-Uri":
 		return key, true
+	case "backURL":
+		return "backurl", true
 	default:
 		return grpc_runtime.DefaultHeaderMatcher(key)
 	}
