@@ -35,7 +35,6 @@ type Service struct {
 }
 
 const (
-	CookiePath                  = "/"
 	CookieName_UUID             = "oidc_token_uuid"
 	CookieName_UserEmail        = "UserEmail"
 	CookieName_UserName         = "UserName"
