@@ -175,7 +175,7 @@ func (i *Interceptor) getParams(md metadata.MD) (params *getTokenParams) {
 func (i *Interceptor) returnRedirectJSON(_ context.Context, md metadata.MD, providedBackURL string) (*proto.RedirectResponse, error) {
 	statusError := status.New(codes.Unauthenticated, "redirect to keycloak")
 	if providedBackURL != "" {
-		md.Set("x-http-status-code", strconv.Itoa(http.StatusSeeOther))
+		md.Set("x-http-status-code", strconv.Itoa(http.StatusTemporaryRedirect))
 		st, _ := status.New(codes.Unauthenticated, "redirect to back_url").WithDetails(&proto.RedirectResponse{
 			RedirectUrl: providedBackURL,
 			Cookies:     md.Get("Set-Cookie")})
