@@ -47,14 +47,10 @@ type GrpcServerStarter struct {
 func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
 	logger, _ := zap.NewProduction()
 	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(config.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
-	service, err := keycloak.NewService(context.Background(), &config.Keycloak, logger)
-	if err != nil {
-		logger.Fatal("can't get keycloak service", zap.Error(err))
-	}
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			initUnaryInterceptors(unaryInterceptors, config.Interceptor, metricsUnaryInterceptor, service, logger)...,
+			initUnaryInterceptors(unaryInterceptors, config, metricsUnaryInterceptor, logger)...,
 		),
 		grpc.ChainStreamInterceptor(
 			grpc_recovery.StreamServerInterceptor(),
@@ -69,18 +65,21 @@ func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInt
 }
 
 func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
-	interceptorConfig InterceptorConfig,
+	config Config,
 	metricsUnaryInterceptor func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error),
-	service *keycloak.Service,
 	logger *zap.Logger) []grpc.UnaryServerInterceptor {
 
-	if interceptorConfig.EnableKeycloakInterceptor {
-		unaryInterceptors = append(unaryInterceptors, keycloak.NewInterceptor(service, interceptorConfig.EscapePrefix).KeycloakInterceptorFunc)
+	if config.Interceptor.EnableKeycloakInterceptor {
+		service, err := keycloak.NewService(context.Background(), &config.Keycloak, logger)
+		if err != nil {
+			logger.Fatal("can't get keycloak service", zap.Error(err))
+		}
+		unaryInterceptors = append(unaryInterceptors, keycloak.NewInterceptor(service, config.Interceptor.EscapePrefix).KeycloakInterceptorFunc)
 	}
-	if interceptorConfig.EnableValidationInterceptor {
+	if config.Interceptor.EnableValidationInterceptor {
 		unaryInterceptors = append(unaryInterceptors, interceptors.ValidationUnaryInterceptor(logger))
 	}
-	if interceptorConfig.EnableMetricsInterceptor {
+	if config.Interceptor.EnableMetricsInterceptor {
 		unaryInterceptors = append(unaryInterceptors, metricsUnaryInterceptor)
 	}
 	unaryInterceptors = append(unaryInterceptors,
