@@ -20,8 +20,8 @@ type ServerConfig struct {
 }
 
 type InterceptorConfig struct {
-	EnableMetricsInterceptor    bool   `env:"METRICS_ENABLED"`
-	EnableValidationInterceptor bool   `env:"VALIDATION_ENABLED"`
-	EnableKeycloakInterceptor   bool   `env:"KEYCLOAK_ENABLED"`
+	EnableMetricsInterceptor    bool   `env:"METRICS_ENABLED" envDefault:"true"`
+	EnableValidationInterceptor bool   `env:"VALIDATION_ENABLED" envDefault:"true"`
+	EnableKeycloakInterceptor   bool   `env:"KEYCLOAK_ENABLED" envDefault:"false"`
 	EscapePrefix                string `env:"KEYCLOAK_ESCAPE_PREFIX" envDefault:"/srv"`
 }
