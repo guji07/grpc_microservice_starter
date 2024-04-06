@@ -42,11 +42,11 @@ func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req int
 	h, err := handler(ctx, req)
 	respStatus, ok := status.FromError(err)
 	if !ok || respStatus.Code() != 0 {
-		m.wbMetrics.IncNbRequest(info.FullMethod, http_mapping.GrpcToHTTPCodesMapping(respStatus.Code()), 0)
-		m.wbMetrics.ObserveRequestDuration(info.FullMethod, http_mapping.GrpcToHTTPCodesMapping(respStatus.Code()), 0, time.Since(start))
+		m.wbMetrics.IncNbRequest(info.FullMethod, http_mapping.GrpcToHTTPCodesMapping(respStatus.Code()), "")
+		m.wbMetrics.ObserveRequestDuration(info.FullMethod, http_mapping.GrpcToHTTPCodesMapping(respStatus.Code()), "", time.Since(start))
 	} else {
-		m.wbMetrics.ObserveRequestDuration(info.FullMethod, http.StatusOK, 0, time.Since(start))
-		m.wbMetrics.IncNbRequest(info.FullMethod, http.StatusOK, 0)
+		m.wbMetrics.ObserveRequestDuration(info.FullMethod, http.StatusOK, "", time.Since(start))
+		m.wbMetrics.IncNbRequest(info.FullMethod, http.StatusOK, "")
 	}
 	m.logger.Info("metrics interceptor end time", zap.Time("end", time.Now()))
 

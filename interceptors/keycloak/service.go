@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak/storage"
 	"github.com/pkg/errors"
 	"github.com/valyala/fasthttp"
