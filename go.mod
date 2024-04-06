@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1
@@ -24,7 +24,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.24.0 // indirect
+	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -32,11 +32,7 @@ require (
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-resty/resty/v2 v2.12.0 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/klauspost/compress v1.17.7 // indirect
-	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.52.2 // indirect
