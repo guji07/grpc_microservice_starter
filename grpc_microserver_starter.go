@@ -30,10 +30,17 @@ import (
 )
 
 type GrpcServerStarter struct {
-	GrpcServer     *grpc.Server
-	config         Config
-	jaegerExporter jaeger.Exporter
-	logger         *zap.Logger
+	GrpcServer         *grpc.Server
+	config             Config
+	jaegerExporter     jaeger.Exporter
+	logger             *zap.Logger
+	customHttpHandlers []HttpRouteHandler
+}
+
+type HttpRouteHandler struct {
+	Method  string
+	Path    string
+	handler grpc_runtime.HandlerFunc
 }
 
 // NewGrpcServerStarter - main function of library
@@ -44,7 +51,7 @@ type GrpcServerStarter struct {
 //	name of the package with generated code
 //
 // start if err := GrpcServerStarter.Start(ctx, proto.RegisterYourServiceHandlerFromEndpoint); err != nil { serverStarter.Stop(ctx) }
-func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInterceptor) *GrpcServerStarter {
+func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInterceptor, customHttpHandlers []HttpRouteHandler) *GrpcServerStarter {
 	logger, _ := zap.NewProduction()
 	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(config.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
 
@@ -58,9 +65,10 @@ func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInt
 	)
 
 	return &GrpcServerStarter{
-		GrpcServer: grpcServer,
-		config:     config,
-		logger:     logger,
+		GrpcServer:         grpcServer,
+		config:             config,
+		logger:             logger,
+		customHttpHandlers: customHttpHandlers,
 	}
 }
 
@@ -91,20 +99,10 @@ func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
 
 func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(ctx context.Context, mux *grpc_runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)) error {
 	// Set up OTLP tracing (stdout for debug).
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(g.config.JaegerUrl)))
+	exp, err := g.setupJaeger()
 	if err != nil {
 		return err
 	}
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithBatcher(exp),
-		sdktrace.WithResource(resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(g.config.ServiceName),
-		)),
-	)
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	defer func() { _ = exp.Shutdown(context.Background()) }()
 
 	lis, err := net.Listen("tcp", g.config.Server.GrpcBind)
@@ -126,6 +124,13 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		grpc_runtime.WithErrorHandler(g.httpErrorHandlerFunc),
 		grpc_runtime.WithIncomingHeaderMatcher(CustomMatcher),
 	)
+	for _, v := range g.customHttpHandlers {
+		err = mux.HandlePath(v.Method, v.Path, v.handler)
+		if err != nil {
+			g.logger.Fatal("error adding custom http route handler", zap.Error(err))
+			return err
+		}
+	}
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	err = registerServiceFunc(ctx, mux, g.config.Server.GrpcBind, opts)
 	if err != nil {
@@ -133,10 +138,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 	}
 
 	// Serve probes
-	go func() {
-		g.logger.Info("started probes on", zap.String("bind", g.config.Server.ProbeBind))
-		startProbes(g.config, g.logger)
-	}()
+	g.startProbes()
 	// Serve gRPC Server
 	go func() {
 		g.logger.Info("started grpc server on", zap.String("bind", g.config.Server.GrpcBind))
@@ -155,6 +157,24 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 	return err
 }
 
+func (g *GrpcServerStarter) setupJaeger() (*jaeger.Exporter, error) {
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(g.config.JaegerUrl)))
+	if err != nil {
+		return nil, err
+	}
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(exp),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String(g.config.ServiceName),
+		)),
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	return exp, nil
+}
+
 func (g *GrpcServerStarter) Stop(ctx context.Context) {
 	err := g.jaegerExporter.Shutdown(ctx)
 	if err != nil {
@@ -163,9 +183,9 @@ func (g *GrpcServerStarter) Stop(ctx context.Context) {
 	}
 }
 
-func startProbes(cfg Config, logger *zap.Logger) {
-	if cfg.Server.ProbeBind == "" {
-		logger.Error("Probes not started because bind parameter is empty")
+func (g *GrpcServerStarter) startProbes() {
+	if g.config.Server.ProbeBind == "" {
+		g.logger.Error("Probes not started because bind parameter is empty")
 		return
 	}
 
@@ -173,19 +193,20 @@ func startProbes(cfg Config, logger *zap.Logger) {
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte("ok"))
 		if err != nil {
-			logger.Error("error responding to probe", zap.Error(err))
+			g.logger.Error("error responding to probe", zap.Error(err))
 		}
 	})
 	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte("ok"))
 		if err != nil {
-			logger.Error("error responding to probe", zap.Error(err))
+			g.logger.Error("error responding to probe", zap.Error(err))
 		}
 	})
+	g.logger.Info("started probes on", zap.String("bind", g.config.Server.ProbeBind))
 	go func() {
-		if err := http.ListenAndServe(cfg.Server.ProbeBind, nil); err != nil {
-			logger.Error("listen probe failed", zap.Error(err))
+		if err := http.ListenAndServe(g.config.Server.ProbeBind, nil); err != nil {
+			g.logger.Error("listen probe failed", zap.Error(err))
 		}
 	}()
 }
