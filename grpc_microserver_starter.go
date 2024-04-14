@@ -40,7 +40,7 @@ type GrpcServerStarter struct {
 type HttpRouteHandler struct {
 	Method  string
 	Path    string
-	handler grpc_runtime.HandlerFunc
+	Handler grpc_runtime.HandlerFunc
 }
 
 // NewGrpcServerStarter - main function of library
@@ -125,7 +125,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		grpc_runtime.WithIncomingHeaderMatcher(CustomMatcher),
 	)
 	for _, v := range g.customHttpHandlers {
-		err = mux.HandlePath(v.Method, v.Path, v.handler)
+		err = mux.HandlePath(v.Method, v.Path, v.Handler)
 		if err != nil {
 			g.logger.Fatal("error adding custom http route handler", zap.Error(err))
 			return err
