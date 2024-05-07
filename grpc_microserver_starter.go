@@ -97,7 +97,7 @@ func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
 	return unaryInterceptors
 }
 
-func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(ctx context.Context, mux *grpc_runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)) error {
+func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray []func(ctx context.Context, mux *grpc_runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)) error {
 	// Set up OTLP tracing (stdout for debug).
 	exp, err := g.setupJaeger()
 	if err != nil {
@@ -132,9 +132,11 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFunc func(
 		}
 	}
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	err = registerServiceFunc(ctx, mux, g.config.Server.GrpcBind, opts)
-	if err != nil {
-		return err
+	for _, registerServiceFunc := range registerServiceFuncsArray {
+		err = registerServiceFunc(ctx, mux, g.config.Server.GrpcBind, opts)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Serve probes
