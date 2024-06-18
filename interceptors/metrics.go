@@ -34,7 +34,7 @@ func UnaryMetricsInterceptor(port string, wbMetrics wb_metrics.HTTPServerMetrics
 
 func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	m.wbMetrics.IncNbConnections()
-	defer m.wbMetrics.IncNbConnections()
+	defer m.wbMetrics.DecNbConnections()
 	start := time.Now()
 
 	// Calls the handler
