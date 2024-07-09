@@ -112,7 +112,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 	mux := grpc_runtime.NewServeMux(
 		grpc_runtime.WithMetadata(func(_ context.Context, req *http.Request) metadata.MD {
 			var localeValue = "ru"
-			locale, err := req.Cookie("Locale")
+			locale, err := req.Cookie("locale")
 			if err != nil || locale == nil {
 				g.logger.Error("can't get cookies: %v", zap.Error(err))
 			} else {
@@ -124,7 +124,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
 				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
 				"RequestURI":                    req.URL.RequestURI(),
-				"Locale":                        localeValue,
+				"locale":                        localeValue,
 			})
 		}),
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
