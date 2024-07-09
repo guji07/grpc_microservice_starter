@@ -111,12 +111,20 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 	}
 	mux := grpc_runtime.NewServeMux(
 		grpc_runtime.WithMetadata(func(_ context.Context, req *http.Request) metadata.MD {
-			return metadata.New(map[string]string{
+			var localeValue = "ru"
+			locale, err := req.Cookie("Locale")
+			if err != nil || locale == nil {
+				g.logger.Error("can't get cookies: %v", zap.Error(err))
+			} else {
+				localeValue = locale.Value
+			}
+			return metadata.New(map[string]string{ //keycloak params from query, used for authorization logic
 				keycloak.ParamName_State:        req.URL.Query().Get(keycloak.ParamName_State),
 				keycloak.ParamName_Code:         req.URL.Query().Get(keycloak.ParamName_Code),
 				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
 				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
 				"RequestURI":                    req.URL.RequestURI(),
+				"Locale":                        localeValue,
 			})
 		}),
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
