@@ -21,9 +21,9 @@ type MetricsInterceptor struct {
 func UnaryMetricsInterceptor(port string, wbMetrics wb_metrics.HTTPServerMetrics, logger *zap.Logger) func(
 	ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	go func() {
-		logger.Info("Metrics started", zap.String("port", port))
+		//logger.Debug("Metrics started", zap.String("port", port))
 		if err := http.ListenAndServe(port, promhttp.Handler()); err != nil {
-			logger.Error("listen metrics finished", zap.Error(err))
+			//logger.Debug("listen metrics finished", zap.Error(err))
 		}
 	}()
 	return (&MetricsInterceptor{
@@ -38,7 +38,7 @@ func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req int
 	start := time.Now()
 
 	// Calls the handler
-	m.logger.Info("metrics interceptor start time", zap.Time("start", start))
+	//m.logger.Debug("metrics interceptor start time", zap.Time("start", start))
 	h, err := handler(ctx, req)
 	respStatus, ok := status.FromError(err)
 	if !ok || respStatus.Code() != 0 {
@@ -48,7 +48,7 @@ func (m *MetricsInterceptor) MetricsInterceptorFunc(ctx context.Context, req int
 		m.wbMetrics.ObserveRequestDuration(info.FullMethod, http.StatusOK, "", time.Since(start))
 		m.wbMetrics.IncNbRequest(info.FullMethod, http.StatusOK, "")
 	}
-	m.logger.Info("metrics interceptor end time", zap.Time("end", time.Now()))
+	//m.logger.Debug("metrics interceptor end time", zap.Time("end", time.Now()))
 
 	return h, err
 }

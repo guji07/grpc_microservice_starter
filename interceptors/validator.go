@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"context"
-	"time"
 
 	"github.com/guji07/grpc_microservice_starter/http_mapping"
 	"go.uber.org/zap"
@@ -35,8 +34,8 @@ type validationMultiErrorInterface interface {
 }
 
 func (v *ValidatorInterceptor) ValidatorInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	start := time.Now()
-	v.logger.Info("ValidatorInterceptorFunc start time", zap.Time("start", start))
+	//start := time.Now()
+	//v.logger.Info("ValidatorInterceptorFunc start time", zap.Time("start", start))
 	switch req.(type) {
 	case validator:
 		err := req.(validator).Validate(true)
@@ -51,6 +50,6 @@ func (v *ValidatorInterceptor) ValidatorInterceptorFunc(ctx context.Context, req
 		}
 	}
 	h, err := handler(ctx, req)
-	v.logger.Info("ValidatorInterceptorFunc end time", zap.Time("end", time.Now()))
+	//v.logger.Info("ValidatorInterceptorFunc end time", zap.Time("end", time.Now()))
 	return h, err
 }

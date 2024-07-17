@@ -114,7 +114,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 			var localeValue = "ru"
 			locale, err := req.Cookie("locale")
 			if err != nil || locale == nil {
-				g.logger.Error("can't get cookies: %v", zap.Error(err))
+				//g.logger.Debug("can't get cookies: %v", zap.Error(err))
 			} else {
 				localeValue = locale.Value
 			}
