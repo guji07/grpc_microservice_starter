@@ -1,7 +1,6 @@
 package keycloak
 
 type Config struct {
-	IsEnabled    bool   `env:"ENABLED" envDefault:"false"`
 	Host         string `env:"HOST"`          // Хост KeyCloak, на данный момент "keycloak.wildberries.ru"
 	ClientID     string `env:"CLIENT_ID"`     // ClientID в KeyCloak, в нашем случае "authorized-services-admin"
 	ClientSecret string `env:"CLIENT_SECRET"` // Выдаётся после регистрации сервиса в KeyCloak, хранится в vault
