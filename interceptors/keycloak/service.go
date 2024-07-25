@@ -38,14 +38,29 @@ const (
 	CookieName_UUID             = "oidc_token_uuid"
 	CookieName_UserEmail        = "UserEmail"
 	CookieName_UserName         = "UserName"
+	CookieName_TokenId          = "iam_token_id"
 	CtxUserValue_Claims         = "claims"
 	grantType_AuthorizationCode = "authorization_code"
 
+	ParamName_SessionState = "session_state"
+	ParamName_Locale       = "locale"
 	ParamName_State        = "state"
 	ParamName_Code         = "code"
-	ParamName_SessionState = "session_state"
 	ParamName_BackURL      = "backurl"
 	ParamName_XAccessToken = "x-access-token"
+	ParamName_XAccessKey   = "x-access-key"
+	ParamName_Host         = "host"
+
+	ParamName_FinalBackUrl        = "final_backurl"
+	ParamName_XOriginalRequestURI = "x-original-request-uri"
+
+	//already proxying by default grpc-gateway behaviour:
+	ParamName_RequestURI = "requesturi"
+	ParamName_Referer    = "grpcgateway-referer"
+
+	//Metadata tags:
+	MetadataName_IAMPermissions = "iam_permissions"
+	MetadataName_IAMUserId      = "iam_user_id"
 )
 
 type getTokenParams struct {

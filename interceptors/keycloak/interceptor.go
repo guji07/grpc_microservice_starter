@@ -27,9 +27,6 @@ func NewInterceptor(keycloakService *Service, escapePrefix string) *Interceptor 
 }
 
 func (i *Interceptor) KeycloakInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	if !i.keycloakService.config.IsEnabled {
-		return handler(ctx, req)
-	}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return handler(ctx, req)
