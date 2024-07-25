@@ -38,6 +38,7 @@ const (
 	CookieName_UUID             = "oidc_token_uuid"
 	CookieName_UserEmail        = "UserEmail"
 	CookieName_UserName         = "UserName"
+	CookieName_TokenId          = "iam_token_id"
 	CtxUserValue_Claims         = "claims"
 	grantType_AuthorizationCode = "authorization_code"
 
@@ -45,6 +46,7 @@ const (
 	ParamName_Code         = "code"
 	ParamName_SessionState = "session_state"
 	ParamName_BackURL      = "backurl"
+	ParamName_FinalBackUrl = "finalBackUrl"
 	ParamName_XAccessToken = "x-access-token"
 )
 

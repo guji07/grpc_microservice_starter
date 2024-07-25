@@ -122,6 +122,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 				keycloak.ParamName_State:        req.URL.Query().Get(keycloak.ParamName_State),
 				keycloak.ParamName_Code:         req.URL.Query().Get(keycloak.ParamName_Code),
 				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
+				keycloak.ParamName_FinalBackUrl: req.URL.Query().Get(keycloak.ParamName_FinalBackUrl),
 				"RequestURI":                    req.URL.RequestURI(),
 				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
 				"locale":                        localeValue,

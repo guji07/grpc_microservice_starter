@@ -1,12 +1,16 @@
 package grpc_microservice_starter
 
-import "github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
+import (
+	"github.com/guji07/grpc_microservice_starter/interceptors/iam"
+	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
+)
 
 type Config struct {
 	//structs
 	Server      ServerConfig      `envPrefix:"SERVER_"`
 	Interceptor InterceptorConfig `envPrefix:"INTERCEPTOR_"`
 	Keycloak    keycloak.Config   `envPrefix:"KEYCLOAK_"`
+	IAM         iam.Config        `envPrefix:"IAM_"`
 	//non-group config values
 	ServiceName string `env:"SERVICE_NAME,required"`
 	JaegerUrl   string `env:"JAEGER_URL" envDefault:"http://jaeger-collector.tracing.svc:14268/api/traces"`
@@ -23,5 +27,6 @@ type InterceptorConfig struct {
 	EnableMetricsInterceptor    bool   `env:"METRICS_ENABLED" envDefault:"true"`
 	EnableValidationInterceptor bool   `env:"VALIDATION_ENABLED" envDefault:"true"`
 	EnableKeycloakInterceptor   bool   `env:"KEYCLOAK_ENABLED" envDefault:"false"`
+	EnableIAMInterceptor        bool   `env:"IAM_ENABLED" envDefault:"false"`
 	EscapePrefix                string `env:"KEYCLOAK_ESCAPE_PREFIX" envDefault:"/srv"`
 }
