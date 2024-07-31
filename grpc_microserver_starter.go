@@ -121,11 +121,11 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 			return metadata.New(map[string]string{ //keycloak params from query and headers, used for authorization logic
 				keycloak.ParamName_State:        req.URL.Query().Get(keycloak.ParamName_State),
 				keycloak.ParamName_Code:         req.URL.Query().Get(keycloak.ParamName_Code),
-				keycloak.ParamName_XAccessToken: req.URL.Query().Get(keycloak.ParamName_XAccessToken),
 				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
 				"RequestURI":                    req.URL.RequestURI(),
-				keycloak.ParamName_SessionState: req.Header.Get(keycloak.ParamName_SessionState),
+				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
 				"locale":                        localeValue,
+				keycloak.ParamName_XAccessToken: req.Header.Get(keycloak.ParamName_XAccessToken),
 			})
 		}),
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
