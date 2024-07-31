@@ -9,7 +9,6 @@ import (
 	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak/storage"
 	"github.com/pkg/errors"
 	"github.com/valyala/fasthttp"
-
 	"go.uber.org/zap"
 )
 
@@ -46,6 +45,7 @@ const (
 	ParamName_Code         = "code"
 	ParamName_SessionState = "session_state"
 	ParamName_BackURL      = "backurl"
+	ParamName_XAccessToken = "x-access-token"
 )
 
 type getTokenParams struct {
