@@ -1,6 +1,6 @@
 package iam
 
-type Config struct {
+type IAMConfig struct {
 	IAMHost   string `env:"HOST"`
 	ServiceId string `env:"SERVICE_ID"`
 }

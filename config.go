@@ -10,7 +10,7 @@ type Config struct {
 	Server      ServerConfig      `envPrefix:"SERVER_"`
 	Interceptor InterceptorConfig `envPrefix:"INTERCEPTOR_"`
 	Keycloak    keycloak.Config   `envPrefix:"KEYCLOAK_"`
-	IAM         iam.Config        `envPrefix:"IAM_"`
+	IAM         iam.IAMConfig     `envPrefix:"IAM_"`
 	//non-group config values
 	ServiceName string `env:"SERVICE_NAME,required"`
 	JaegerUrl   string `env:"JAEGER_URL" envDefault:"http://jaeger-collector.tracing.svc:14268/api/traces"`
