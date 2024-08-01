@@ -90,7 +90,7 @@ func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
 		iamClient := iam_client.NewIamClient(
 			config.IAM.ServiceId,
 			config.IAM.IAMHost,
-			nil,
+			iam.NewLogger(logger),
 			http.DefaultClient,
 		)
 		interceptor := iam.NewInterceptor(
