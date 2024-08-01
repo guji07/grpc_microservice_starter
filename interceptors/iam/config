@@ -1,5 +1,6 @@
 package iam
 
 type Config struct {
-	IAMHost string
+	IAMHost   string
+	ServiceId string
 }

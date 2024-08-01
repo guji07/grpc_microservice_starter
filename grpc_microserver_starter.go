@@ -10,8 +10,10 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/guji07/grpc_microservice_starter/interceptors"
+	"github.com/guji07/grpc_microservice_starter/interceptors/iam"
 	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
 	grpc_microservice_starter "github.com/guji07/grpc_microservice_starter/proto"
+	"github.com/happywbfriends/iam_client"
 	wb_metrics "github.com/happywbfriends/metrics/v1"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
@@ -77,12 +79,26 @@ func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
 	metricsUnaryInterceptor func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error),
 	logger *zap.Logger) []grpc.UnaryServerInterceptor {
 
-	if config.Interceptor.EnableKeycloakInterceptor {
+	/*if config.Interceptor.EnableKeycloakInterceptor {
 		service, err := keycloak.NewService(context.Background(), &config.Keycloak, logger)
 		if err != nil {
 			logger.Fatal("can't get keycloak service", zap.Error(err))
 		}
 		unaryInterceptors = append(unaryInterceptors, keycloak.NewInterceptor(service, config.Interceptor.EscapePrefix).KeycloakInterceptorFunc)
+	}*/
+	if config.Interceptor.EnableIAMInterceptor {
+		iamClient := iam_client.NewIamClient(
+			config.IAM.ServiceId,
+			config.IAM.IAMHost,
+			nil,
+			http.DefaultClient,
+		)
+		interceptor := iam.NewInterceptor(
+			iamClient,
+			logger,
+			"",
+			config.IAM.ServiceId)
+		unaryInterceptors = append(unaryInterceptors, interceptor.IamInterceptorFunc)
 	}
 	if config.Interceptor.EnableValidationInterceptor {
 		unaryInterceptors = append(unaryInterceptors, interceptors.ValidationUnaryInterceptor(logger))
@@ -113,20 +129,26 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 		grpc_runtime.WithMetadata(func(_ context.Context, req *http.Request) metadata.MD {
 			var localeValue = "ru"
 			locale, err := req.Cookie("locale")
-			if err != nil || locale == nil {
-				//g.logger.Debug("can't get cookies: %v", zap.Error(err))
-			} else {
+			if err == nil && locale != nil {
 				localeValue = locale.Value
 			}
-			return metadata.New(map[string]string{ //keycloak params from query and headers, used for authorization logic
+			return metadata.New(map[string]string{
+				//query params:
 				keycloak.ParamName_State:        req.URL.Query().Get(keycloak.ParamName_State),
 				keycloak.ParamName_Code:         req.URL.Query().Get(keycloak.ParamName_Code),
 				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
 				keycloak.ParamName_FinalBackUrl: req.URL.Query().Get(keycloak.ParamName_FinalBackUrl),
-				"RequestURI":                    req.URL.RequestURI(),
 				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
-				"locale":                        localeValue,
+
+				//request uri:
+				keycloak.ParamName_RequestURI: req.URL.RequestURI(),
+
+				//headers:
 				keycloak.ParamName_XAccessToken: req.Header.Get(keycloak.ParamName_XAccessToken),
+				keycloak.ParamName_XAccessKey:   req.Header.Get(keycloak.ParamName_XAccessKey),
+
+				//cookies:
+				keycloak.ParamName_Locale: localeValue,
 			})
 		}),
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
