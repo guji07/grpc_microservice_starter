@@ -47,12 +47,13 @@ const (
 	ParamName_State        = "state"
 	ParamName_Code         = "code"
 	ParamName_BackURL      = "backurl"
-	ParamName_XAccessToken = "x-access-token"
-	ParamName_XAccessKey   = "x-access-key"
-	ParamName_Host         = "host"
+	//HEADERS:
+	ParamName_XAccessToken        = "X-Access-Token"
+	ParamName_XAccessKey          = "x-Access-Key"
+	ParamName_Host                = "Host"
+	ParamName_XOriginalRequestURI = "X-Original-Request-Uri"
 
-	ParamName_FinalBackUrl        = "final_backurl"
-	ParamName_XOriginalRequestURI = "x-original-request-uri"
+	ParamName_FinalBackUrl = "final_backurl"
 
 	//already proxying by default grpc-gateway behaviour:
 	ParamName_RequestURI = "requesturi"
@@ -62,6 +63,10 @@ const (
 	//Metadata tags:
 	MetadataName_IAMPermissions = "iam_permissions"
 	MetadataName_IAMUserId      = "iam_user_id"
+)
+
+var (
+	HeaderParams = []string{ParamName_Host, ParamName_XOriginalRequestURI, ParamName_XAccessKey, ParamName_XAccessToken}
 )
 
 type getTokenParams struct {

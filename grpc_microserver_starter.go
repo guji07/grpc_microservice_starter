@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/textproto"
+	"slices"
 	"strconv"
 
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -143,12 +144,6 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 				//request uri:
 				keycloak.ParamName_RequestURI: req.URL.RequestURI(),
 
-				//headers:
-				keycloak.ParamName_XAccessToken:        req.Header.Get(keycloak.ParamName_XAccessToken),
-				keycloak.ParamName_XAccessKey:          req.Header.Get(keycloak.ParamName_XAccessKey),
-				keycloak.ParamName_Host:                req.Header.Get(keycloak.ParamName_Host),
-				keycloak.ParamName_XOriginalRequestURI: req.Header.Get(keycloak.ParamName_Host),
-
 				//cookies:
 				keycloak.ParamName_Locale: localeValue,
 			})
@@ -156,6 +151,7 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
 		//custom error handling - for example when no token to keycloak we return json with redirect_url
 		grpc_runtime.WithErrorHandler(g.httpErrorHandlerFunc),
+		//custom headers matcher - you can define in it what needs to be pushed into grpc metadata context from http headers
 		grpc_runtime.WithIncomingHeaderMatcher(CustomMatcher),
 	)
 	for _, v := range g.customHttpHandlers {
@@ -307,10 +303,8 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 }
 
 func CustomMatcher(key string) (string, bool) {
-	switch textproto.CanonicalMIMEHeaderKey(key) {
-	case "X-Original-Request-Uri":
+	if slices.Contains(keycloak.HeaderParams, textproto.CanonicalMIMEHeaderKey(key)) {
 		return key, true
-	default:
-		return grpc_runtime.DefaultHeaderMatcher(key)
 	}
+	return grpc_runtime.DefaultHeaderMatcher(key)
 }

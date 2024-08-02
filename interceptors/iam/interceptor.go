@@ -78,7 +78,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 	}
 
 	// есть ли id токена в куке
-	tokenIdArr := i.getFromCookie(ctx, md, keycloak.CookieName_TokenId)
+	tokenIdArr := GetFromCookie(ctx, md, keycloak.CookieName_TokenId)
 	if tokenIdArr == "" {
 		// Куки нет, дергаем ручку IAM getAuthLink и отдаем 401 со ссылкой в ответе
 		authLinkResponse, err := i.IAMClient.GetAuthLink(backURL)
@@ -132,7 +132,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 	return nil, status.Error(codes.Internal, "received not 200 from iam when getting user permissions")
 }
 
-func (i *Interceptor) getFromCookie(ctx context.Context, md metadata.MD, cookieName string) string {
+func GetFromCookie(ctx context.Context, md metadata.MD, cookieName string) string {
 	var value string
 	cookies := md.Get(keycloak.ParamName_Cookies)
 
