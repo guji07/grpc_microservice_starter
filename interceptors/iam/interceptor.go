@@ -66,7 +66,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 			i.logger.Error("can't ParseRequestURI before setting cookies: %s", zap.Error(err))
 			return status.New(codes.InvalidArgument, "incorrect finalBackURL"), err
 		}
-		return i.returnRedirectJSON(ctx, md, finalBackUrl[0])
+		return i.returnRedirectJSON(ctx, md, finalBackUrl[0], http.StatusTemporaryRedirect)
 	}
 
 	// URL, на который IAM вернет пользователя после успешной аутентифицикации
@@ -77,7 +77,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 		return returnStatus, returnStatus.Err()
 	}
 
-	// Проверяем id токена в куках
+	// есть ли id токена в куке
 	tokenIdArr := md[keycloak.CookieName_TokenId]
 	if len(tokenIdArr) == 0 || tokenIdArr[0] == "" {
 		// Куки нет, дергаем ручку IAM getAuthLink и отдаем 401 со ссылкой в ответе
@@ -86,7 +86,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 			return status.New(codes.Internal, "can't GetAuthLink"), nil
 		}
 
-		return i.returnRedirectJSON(ctx, md, authLinkResponse.RedirectUrl)
+		return i.returnRedirectJSON(ctx, md, authLinkResponse.RedirectUrl, http.StatusUnauthorized)
 	}
 
 	// Кука есть - запрашиваем у IAM пермишены по ручке getTokenPermissions
@@ -103,7 +103,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 
 	// Отправляем юзера на аутентификацию в IAM
 	if resp.HttpStatus == http.StatusUnauthorized {
-		return i.returnRedirectJSON(ctx, md, resp.RedirectUrl)
+		return i.returnRedirectJSON(ctx, md, resp.RedirectUrl, http.StatusUnauthorized)
 	}
 
 	// Все хорошо, кладем права в контекст и идем дальше
@@ -162,9 +162,8 @@ func (i *Interceptor) AuthAccessKey(ctx context.Context, req interface{}, handle
 }
 
 // returnRedirectJSON creates an UnauthorizedResponse with a redirect URL.
-func (i *Interceptor) returnRedirectJSON(ctx context.Context, md metadata.MD, redirectUrl string) (*proto.RedirectResponse, error) {
-	_ = grpc.SetHeader(ctx, metadata.Pairs("x-http-status-code", strconv.Itoa(http.StatusTemporaryRedirect)))
-
+func (i *Interceptor) returnRedirectJSON(ctx context.Context, md metadata.MD, redirectUrl string, respCode int) (*proto.RedirectResponse, error) {
+	_ = grpc.SetHeader(ctx, metadata.Pairs("x-http-status-code", strconv.Itoa(respCode)))
 	st, _ := status.New(codes.Unauthenticated, "redirect").WithDetails(&proto.RedirectResponse{
 		RedirectUrl: redirectUrl,
 		Cookies:     md.Get("Set-Cookie")})
