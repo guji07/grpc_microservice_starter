@@ -66,7 +66,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 			i.logger.Error("can't ParseRequestURI before setting cookies: %s", zap.Error(err))
 			return status.New(codes.InvalidArgument, "incorrect finalBackURL"), err
 		}
-		return i.returnRedirectJSON(ctx, md, finalBackUrl[0], http.StatusTemporaryRedirect)
+		return i.returnRedirectJSON(ctx, md, finalBackUrl[0], http.StatusUnauthorized)
 	}
 
 	// URL, на который IAM вернет пользователя после успешной аутентифицикации
