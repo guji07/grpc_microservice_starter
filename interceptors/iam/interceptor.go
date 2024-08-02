@@ -285,6 +285,8 @@ func (i *Interceptor) getRequestURL(md metadata.MD) string {
 	hosts := md.Get(keycloak.ParamName_Host)
 	if len(hosts) > 0 {
 		host = hosts[0]
+	} else {
+		i.logger.Error("no host in request, func getRequestURL")
 	}
 
 	return "https://" + strings.Trim(host, "/") + uri

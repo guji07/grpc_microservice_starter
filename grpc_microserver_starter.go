@@ -144,8 +144,10 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 				keycloak.ParamName_RequestURI: req.URL.RequestURI(),
 
 				//headers:
-				keycloak.ParamName_XAccessToken: req.Header.Get(keycloak.ParamName_XAccessToken),
-				keycloak.ParamName_XAccessKey:   req.Header.Get(keycloak.ParamName_XAccessKey),
+				keycloak.ParamName_XAccessToken:        req.Header.Get(keycloak.ParamName_XAccessToken),
+				keycloak.ParamName_XAccessKey:          req.Header.Get(keycloak.ParamName_XAccessKey),
+				keycloak.ParamName_Host:                req.Header.Get(keycloak.ParamName_Host),
+				keycloak.ParamName_XOriginalRequestURI: req.Header.Get(keycloak.ParamName_Host),
 
 				//cookies:
 				keycloak.ParamName_Locale: localeValue,
