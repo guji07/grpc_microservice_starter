@@ -57,6 +57,7 @@ const (
 	//already proxying by default grpc-gateway behaviour:
 	ParamName_RequestURI = "requesturi"
 	ParamName_Referer    = "grpcgateway-referer"
+	ParamName_Cookies    = "grpcgateway-cookie"
 
 	//Metadata tags:
 	MetadataName_IAMPermissions = "iam_permissions"

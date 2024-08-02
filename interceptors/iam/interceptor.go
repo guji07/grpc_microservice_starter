@@ -78,8 +78,8 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 	}
 
 	// есть ли id токена в куке
-	tokenIdArr := md[keycloak.CookieName_TokenId]
-	if len(tokenIdArr) == 0 || tokenIdArr[0] == "" {
+	tokenIdArr := i.getFromCookie(ctx, md, keycloak.CookieName_TokenId)
+	if tokenIdArr == "" {
 		// Куки нет, дергаем ручку IAM getAuthLink и отдаем 401 со ссылкой в ответе
 		authLinkResponse, err := i.IAMClient.GetAuthLink(backURL)
 		if err != nil {
@@ -90,7 +90,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 	}
 
 	// Кука есть - запрашиваем у IAM пермишены по ручке getTokenPermissions
-	tokenId, err := url.QueryUnescape(tokenIdArr[0])
+	tokenId, err := url.QueryUnescape(tokenIdArr)
 	if err != nil {
 		i.logger.Error("can't QueryUnescape tokenId %s", zap.Error(err))
 		return status.New(codes.Internal, "can't QueryUnescape tokenId %s"), nil
@@ -130,6 +130,24 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 
 	// Получен не 200 и не 401, отдаем статус как есть
 	return status.Error(codes.Internal, "received not 200 from iam when getting user permissions"), nil
+}
+
+func (i *Interceptor) getFromCookie(ctx context.Context, md metadata.MD, cookieName string) string {
+	var value string
+	cookies := md.Get(keycloak.ParamName_Cookies)
+
+	if len(cookies) == 0 {
+		return ""
+	}
+	cookiesArray := strings.Split(cookies[0], ";")
+	for _, v := range cookiesArray {
+		if strings.Contains(v, cookieName) {
+			_, value, _ = strings.Cut(v, "=")
+			return value
+		}
+	}
+
+	return value
 }
 
 // AuthAccessKey аутентифицирует приложение по хедеру X-Access-Key
