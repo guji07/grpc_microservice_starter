@@ -129,7 +129,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 	}
 
 	// Получен не 200 и не 401, отдаем статус как есть
-	return status.Error(codes.Internal, "received not 200 from iam when getting user permissions"), nil
+	return nil, status.Error(codes.Internal, "received not 200 from iam when getting user permissions")
 }
 
 func (i *Interceptor) getFromCookie(ctx context.Context, md metadata.MD, cookieName string) string {
