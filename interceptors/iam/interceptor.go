@@ -112,18 +112,18 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 		md.Set(keycloak.MetadataName_IAMUserId, resp.UserId)
 
 		// Добавляем содержимое куки CookieName_UserEmail как userId
-		var userEmail string
-		userEmailCk := md.Get(keycloak.CookieName_UserEmail)
-		if len(userEmailCk) < 1 {
-			// Такого быть не должно ругнемся в лог
-			i.logger.Error("No UserEmail cookies :(")
-		} else {
-			userEmail, err = url.QueryUnescape(userEmailCk[0])
-			if err != nil {
-				i.logger.Error("can't parse UserEmail cookies :(")
-			}
-		}
-		md.Set(keycloak.MetadataName_IAMUserId, userEmail)
+		//var userEmail string
+		//userEmailCk := md.Get(keycloak.CookieName_UserEmail)
+		//if len(userEmailCk) < 1 {
+		//	// Такого быть не должно ругнемся в лог
+		//	i.logger.Error("No UserEmail cookies :(")
+		//} else {
+		//	userEmail, err = url.QueryUnescape(userEmailCk[0])
+		//	if err != nil {
+		//		i.logger.Error("can't parse UserEmail cookies :(")
+		//	}
+		//}
+		//md.Set(keycloak.MetadataName_IAMUserId, userEmail)
 
 		return handler(ctx, req)
 	}
