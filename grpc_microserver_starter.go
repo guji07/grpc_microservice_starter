@@ -16,6 +16,7 @@ import (
 	grpc_microservice_starter "github.com/guji07/grpc_microservice_starter/proto"
 	"github.com/happywbfriends/iam_client"
 	wb_metrics "github.com/happywbfriends/metrics/v1"
+	"github.com/rs/cors"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -180,8 +181,22 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 		}
 	}()
 
+	withCors := cors.New(cors.Options{
+		AllowOriginFunc: func(origin string) bool {
+			if slices.Contains([]string{"http://localhost:3000", "http://localhost", "https://localhost:3000", "https://localhost"}, origin) {
+				return true
+			}
+			return false
+		},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"ACCEPT", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}).Handler(mux)
+
 	g.logger.Info("started http gateway on", zap.String("bind", g.config.Server.HttpBind))
-	err = http.ListenAndServe(g.config.Server.HttpBind, mux)
+	err = http.ListenAndServe(g.config.Server.HttpBind, withCors)
 	if err != nil {
 		g.logger.Fatal("http gateway finished", zap.Error(err))
 	}
