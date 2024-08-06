@@ -98,7 +98,7 @@ func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
 		interceptor := iam.NewInterceptor(
 			iamClient,
 			logger,
-			"/public/",
+			"/api/v1/public/",
 			config.IAM.ServiceId)
 		unaryInterceptors = append(unaryInterceptors, interceptor.IamInterceptorFunc)
 	}
