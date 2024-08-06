@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"net/textproto"
 	"slices"
 	"strconv"
 
@@ -318,7 +317,7 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 }
 
 func CustomMatcher(key string) (string, bool) {
-	if slices.Contains(keycloak.HeaderParams, textproto.CanonicalMIMEHeaderKey(key)) {
+	if slices.Contains(keycloak.HeaderParams, key) {
 		return key, true
 	}
 	return grpc_runtime.DefaultHeaderMatcher(key)
