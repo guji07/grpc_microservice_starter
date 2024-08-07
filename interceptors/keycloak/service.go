@@ -48,10 +48,10 @@ const (
 	ParamName_Code         = "code"
 	ParamName_BackURL      = "backurl"
 	//HEADERS:
-	ParamName_XAccessToken        = "X-Access-Token"
-	ParamName_XAccessKey          = "X-Access-Key"
-	ParamName_Host                = "Host"
-	ParamName_XOriginalRequestURI = "X-Original-Request-Uri"
+	ParamName_XAccessToken        = "x-access-token"
+	ParamName_XAccessKey          = "x-access-key"
+	ParamName_Host                = "host"
+	ParamName_XOriginalRequestURI = "x-original-request-uri"
 
 	ParamName_FinalBackUrl = "final_backurl"
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -317,7 +318,8 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 }
 
 func CustomMatcher(key string) (string, bool) {
-	if slices.Contains(keycloak.HeaderParams, key) {
+	keyToLower := strings.ToLower(key)
+	if slices.Contains(keycloak.HeaderParams, keyToLower) {
 		return key, true
 	}
 	return grpc_runtime.DefaultHeaderMatcher(key)
