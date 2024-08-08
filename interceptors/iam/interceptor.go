@@ -51,7 +51,7 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 	}
 
 	code := md[keycloak.ParamName_Code]
-	finalBackUrl := md[keycloak.ParamName_FinalBackUrl]
+	finalBackUrl := md[strings.ToLower(keycloak.ParamName_FinalBackUrl)]
 
 	// Шаг 2. Аутентификация пользователя (user2app)
 	// Если это запрос после аутентификации в IAM, обрабатываем его
