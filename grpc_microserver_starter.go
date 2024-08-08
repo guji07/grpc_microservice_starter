@@ -10,9 +10,9 @@ import (
 
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/guji07/grpc_microservice_starter/http_mapping"
 	"github.com/guji07/grpc_microservice_starter/interceptors"
-	"github.com/guji07/grpc_microservice_starter/interceptors/iam"
-	"github.com/guji07/grpc_microservice_starter/interceptors/keycloak"
+	logger "github.com/guji07/grpc_microservice_starter/logger"
 	grpc_microservice_starter "github.com/guji07/grpc_microservice_starter/proto"
 	"github.com/happywbfriends/iam_client"
 	wb_metrics "github.com/happywbfriends/metrics/v1"
@@ -56,12 +56,12 @@ type HttpRouteHandler struct {
 //
 // start if err := GrpcServerStarter.Start(ctx, proto.RegisterYourServiceHandlerFromEndpoint); err != nil { serverStarter.Stop(ctx) }
 func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInterceptor, customHttpHandlers []HttpRouteHandler) *GrpcServerStarter {
-	logger, _ := zap.NewProduction()
-	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(config.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), logger)
+	zapLogger, _ := zap.NewProduction()
+	metricsUnaryInterceptor := interceptors.UnaryMetricsInterceptor(config.Server.MetricsBind, wb_metrics.NewHTTPServerMetrics(), zapLogger)
 
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			initUnaryInterceptors(unaryInterceptors, config, metricsUnaryInterceptor, logger)...,
+			initUnaryInterceptors(unaryInterceptors, config, metricsUnaryInterceptor, zapLogger)...,
 		),
 		grpc.ChainStreamInterceptor(
 			grpc_recovery.StreamServerInterceptor(),
@@ -71,7 +71,7 @@ func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInt
 	return &GrpcServerStarter{
 		GrpcServer:         grpcServer,
 		config:             config,
-		logger:             logger,
+		logger:             zapLogger,
 		customHttpHandlers: customHttpHandlers,
 	}
 }
@@ -79,31 +79,31 @@ func NewGrpcServerStarter(config Config, unaryInterceptors []grpc.UnaryServerInt
 func initUnaryInterceptors(unaryInterceptors []grpc.UnaryServerInterceptor,
 	config Config,
 	metricsUnaryInterceptor func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error),
-	logger *zap.Logger) []grpc.UnaryServerInterceptor {
+	zapLogger *zap.Logger) []grpc.UnaryServerInterceptor {
 
-	/*if config.Interceptor.EnableKeycloakInterceptor {
-		service, err := keycloak.NewService(context.Background(), &config.Keycloak, logger)
+	/*if config.IAMInterceptor.EnableKeycloakInterceptor {
+		service, err := keycloak.NewService(context.Background(), &config.Keycloak, zapLogger)
 		if err != nil {
-			logger.Fatal("can't get keycloak service", zap.Error(err))
+			zapLogger.Fatal("can't get keycloak service", zap.Error(err))
 		}
-		unaryInterceptors = append(unaryInterceptors, keycloak.NewInterceptor(service, config.Interceptor.EscapePrefix).KeycloakInterceptorFunc)
+		unaryInterceptors = append(unaryInterceptors, keycloak.NewIAMInterceptor(service, config.IAMInterceptor.EscapePrefix).KeycloakInterceptorFunc)
 	}*/
 	if config.Interceptor.EnableIAMInterceptor {
 		iamClient := iam_client.NewIamClient(
 			config.IAM.ServiceId,
 			config.IAM.IAMHost,
-			iam.NewLogger(logger),
+			logger.New(zapLogger),
 			http.DefaultClient,
 		)
-		interceptor := iam.NewInterceptor(
+		interceptor := interceptors.NewIAMInterceptor(
 			iamClient,
-			logger,
+			zapLogger,
 			"/api/v1/public/",
 			config.IAM.ServiceId)
 		unaryInterceptors = append(unaryInterceptors, interceptor.IamInterceptorFunc)
 	}
 	if config.Interceptor.EnableValidationInterceptor {
-		unaryInterceptors = append(unaryInterceptors, interceptors.ValidationUnaryInterceptor(logger))
+		unaryInterceptors = append(unaryInterceptors, interceptors.ValidationUnaryInterceptor(zapLogger))
 	}
 	if config.Interceptor.EnableMetricsInterceptor {
 		unaryInterceptors = append(unaryInterceptors, metricsUnaryInterceptor)
@@ -136,17 +136,17 @@ func (g *GrpcServerStarter) Start(ctx context.Context, registerServiceFuncsArray
 			}
 			return metadata.New(map[string]string{
 				//query params:
-				keycloak.ParamName_State:        req.URL.Query().Get(keycloak.ParamName_State),
-				keycloak.ParamName_Code:         req.URL.Query().Get(keycloak.ParamName_Code),
-				keycloak.ParamName_BackURL:      req.URL.Query().Get(keycloak.ParamName_BackURL),
-				keycloak.ParamName_FinalBackUrl: req.URL.Query().Get(keycloak.ParamName_FinalBackUrl),
-				keycloak.ParamName_SessionState: req.URL.Query().Get(keycloak.ParamName_SessionState),
+				http_mapping.ParamName_State:        req.URL.Query().Get(http_mapping.ParamName_State),
+				http_mapping.ParamName_Code:         req.URL.Query().Get(http_mapping.ParamName_Code),
+				http_mapping.ParamName_BackURL:      req.URL.Query().Get(http_mapping.ParamName_BackURL),
+				http_mapping.ParamName_FinalBackUrl: req.URL.Query().Get(http_mapping.ParamName_FinalBackUrl),
+				http_mapping.ParamName_SessionState: req.URL.Query().Get(http_mapping.ParamName_SessionState),
 
 				//request uri:
-				keycloak.ParamName_RequestURI: req.URL.RequestURI(),
+				http_mapping.ParamName_RequestURI: req.URL.RequestURI(),
 
 				//cookies:
-				keycloak.ParamName_Locale: localeValue,
+				http_mapping.ParamName_Locale: localeValue,
 			})
 		}),
 		grpc_runtime.WithRoutingErrorHandler(handleRoutingError),
@@ -319,7 +319,7 @@ func (g *GrpcServerStarter) httpErrorHandlerFunc(ctx context.Context, mux *grpc_
 
 func CustomMatcher(key string) (string, bool) {
 	keyToLower := strings.ToLower(key)
-	if slices.Contains(keycloak.HeaderParams, keyToLower) {
+	if slices.Contains(http_mapping.HeaderParams, keyToLower) {
 		return key, true
 	}
 	return grpc_runtime.DefaultHeaderMatcher(key)

@@ -1,4 +1,4 @@
-package iam
+package logger
 
 import (
 	"go.uber.org/zap"
@@ -8,7 +8,7 @@ type Logger struct {
 	logger *zap.Logger
 }
 
-func NewLogger(logger *zap.Logger) *Logger {
+func New(logger *zap.Logger) *Logger {
 	return &Logger{logger: logger}
 }
 
