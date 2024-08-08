@@ -33,21 +33,21 @@ func NewIAMInterceptor(IAMClient *iam_client.IamClient, logger *zap.Logger, esca
 }
 
 func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	i.logger.Info("entered iam interceptor func")
-	defer i.logger.Info("quited iam interceptor func")
+	//i.logger.Info("entered iam interceptor func")
+	//defer i.logger.Info("quited iam interceptor func")
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		i.logger.Error("can't get metadata FromIncomingContext")
 		return handler(ctx, req)
 	}
-	i.logger.Info("metadata: ", zap.Any(http_mapping.ParamName_RequestURI, md[http_mapping.ParamName_RequestURI]),
+	/*i.logger.Info("metadata: ", zap.Any(http_mapping.ParamName_RequestURI, md[http_mapping.ParamName_RequestURI]),
 		zap.Any(http_mapping.ParamName_BackURL, md[http_mapping.ParamName_BackURL]),
 		zap.Any(http_mapping.ParamName_Host, md[http_mapping.ParamName_Host]),
 		zap.Any(http_mapping.ParamName_FinalBackUrl, md[strings.ToLower(http_mapping.ParamName_FinalBackUrl)]),
 		zap.Any(http_mapping.ParamName_Referer, md[http_mapping.ParamName_Referer]),
 		zap.Any(http_mapping.ParamName_XOriginalRequestURI, md[http_mapping.ParamName_XOriginalRequestURI]),
 		zap.Any(http_mapping.ParamName_Code, md[http_mapping.ParamName_Code]),
-	)
+	)*/
 
 	//0. если урл принадлежит исключениям(i.EscapePrefix), то скипаем авторизацию
 	if len(md[http_mapping.ParamName_RequestURI]) > 0 && strings.HasPrefix(md[http_mapping.ParamName_RequestURI][0], i.EscapePrefix) {
