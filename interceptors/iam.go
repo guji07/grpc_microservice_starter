@@ -31,20 +31,20 @@ func NewIAMInterceptor(IAMClient *iam_client.IamClient, logger *zap.Logger, esca
 }
 
 func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	i.logger.Debug("entered iam interceptor func")
-	defer i.logger.Debug("quited iam interceptor func")
+	i.logger.Info("entered iam interceptor func")
+	defer i.logger.Info("quited iam interceptor func")
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		i.logger.Error("can't get metadata FromIncomingContext")
 		return handler(ctx, req)
 	}
-	i.logger.Debug("metadata :", zap.Any("ParamName_RequestURI", md[http_mapping.ParamName_RequestURI]))
-	i.logger.Debug("metadata :", zap.Any("ParamName_BackURL", md[http_mapping.ParamName_BackURL]))
-	i.logger.Debug("metadata :", zap.Any("ParamName_Host", md[http_mapping.ParamName_Host]))
-	i.logger.Debug("metadata :", zap.Any("ParamName_FinalBackUrl", md[strings.ToLower(http_mapping.ParamName_FinalBackUrl)]))
-	i.logger.Debug("metadata :", zap.Any(http_mapping.ParamName_Referer, md[http_mapping.ParamName_Referer]))
-	i.logger.Debug("metadata :", zap.Any(http_mapping.ParamName_XOriginalRequestURI, md[http_mapping.ParamName_XOriginalRequestURI]))
-	i.logger.Debug("metadata :", zap.Any(http_mapping.ParamName_Code, md[http_mapping.ParamName_Code]))
+	i.logger.Info("metadata :", zap.Any("ParamName_RequestURI", md[http_mapping.ParamName_RequestURI]))
+	i.logger.Info("metadata :", zap.Any("ParamName_BackURL", md[http_mapping.ParamName_BackURL]))
+	i.logger.Info("metadata :", zap.Any("ParamName_Host", md[http_mapping.ParamName_Host]))
+	i.logger.Info("metadata :", zap.Any("ParamName_FinalBackUrl", md[strings.ToLower(http_mapping.ParamName_FinalBackUrl)]))
+	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Referer, md[http_mapping.ParamName_Referer]))
+	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_XOriginalRequestURI, md[http_mapping.ParamName_XOriginalRequestURI]))
+	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Code, md[http_mapping.ParamName_Code]))
 
 	//0. если урл принадлежит исключениям(i.EscapePrefix), то скипаем авторизацию
 	if len(md[http_mapping.ParamName_RequestURI]) > 0 && strings.HasPrefix(md[http_mapping.ParamName_RequestURI][0], i.EscapePrefix) {
