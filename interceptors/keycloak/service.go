@@ -48,12 +48,14 @@ const (
 	ParamName_Code         = "code"
 	ParamName_BackURL      = "backurl"
 	//HEADERS:
+	//HEADERS ARE CASE INSENSITIVE BY HTTP PROTOCOL, SO ALWAYS USE strings.ToLower WHEN PUTTING AND ACCESSING HEADERS FROM METADATA
 	ParamName_XAccessToken        = "x-access-token"
 	ParamName_XAccessKey          = "x-access-key"
 	ParamName_Host                = "host"
 	ParamName_XOriginalRequestURI = "x-original-request-uri"
 
-	ParamName_FinalBackUrl = "finalbackurl"
+	//queryParams, CASE SENSITIVE
+	ParamName_FinalBackUrl = "finalBackUrl"
 
 	//already proxying by default grpc-gateway behaviour:
 	ParamName_RequestURI = "requesturi"
