@@ -72,7 +72,7 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 		if err != nil {
 			return status.New(codes.Internal, "can't GetAuthLink"), err
 		}
-		md = setUserCookies(md, tokenIdResponse)
+		md = *setUserCookies(&md, tokenIdResponse)
 		_, err = url.ParseRequestURI(finalBackUrl[0])
 		if err != nil {
 			i.logger.Error("can't ParseRequestURI before setting cookies: %s", zap.Error(err))
@@ -246,7 +246,7 @@ func (i *IAMInterceptor) addBackURL(md metadata.MD, uri string) string {
 }
 
 // setUserCookies sets user cookies in a grpc metadata
-func setUserCookies(md metadata.MD, parsedToken iam_client.IAMGetTokenIdResponse) metadata.MD {
+func setUserCookies(md *metadata.MD, parsedToken iam_client.IAMGetTokenIdResponse) *metadata.MD {
 	// Helper function to create cookie string
 
 	// Set cookies in metadata
