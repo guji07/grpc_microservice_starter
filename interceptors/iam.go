@@ -40,13 +40,14 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 		i.logger.Error("can't get metadata FromIncomingContext")
 		return handler(ctx, req)
 	}
-	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_RequestURI, md[http_mapping.ParamName_RequestURI]))
-	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_BackURL, md[http_mapping.ParamName_BackURL]))
-	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Host, md[http_mapping.ParamName_Host]))
-	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_FinalBackUrl, md[strings.ToLower(http_mapping.ParamName_FinalBackUrl)]))
-	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Referer, md[http_mapping.ParamName_Referer]))
-	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_XOriginalRequestURI, md[http_mapping.ParamName_XOriginalRequestURI]))
-	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Code, md[http_mapping.ParamName_Code]))
+	i.logger.Info("metadata: ", zap.Any(http_mapping.ParamName_RequestURI, md[http_mapping.ParamName_RequestURI]),
+		zap.Any(http_mapping.ParamName_BackURL, md[http_mapping.ParamName_BackURL]),
+		zap.Any(http_mapping.ParamName_Host, md[http_mapping.ParamName_Host]),
+		zap.Any(http_mapping.ParamName_FinalBackUrl, md[strings.ToLower(http_mapping.ParamName_FinalBackUrl)]),
+		zap.Any(http_mapping.ParamName_Referer, md[http_mapping.ParamName_Referer]),
+		zap.Any(http_mapping.ParamName_XOriginalRequestURI, md[http_mapping.ParamName_XOriginalRequestURI]),
+		zap.Any(http_mapping.ParamName_Code, md[http_mapping.ParamName_Code]),
+	)
 
 	//0. если урл принадлежит исключениям(i.EscapePrefix), то скипаем авторизацию
 	if len(md[http_mapping.ParamName_RequestURI]) > 0 && strings.HasPrefix(md[http_mapping.ParamName_RequestURI][0], i.EscapePrefix) {
