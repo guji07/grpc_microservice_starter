@@ -19,7 +19,7 @@ const (
 	ParamName_XAccessKey          = "x-access-key"
 	ParamName_XOriginalRequestURI = "x-original-request-uri"
 
-	ParamName_FinalBackUrl = "finalBackUrl"
+	ParamName_FinalBackUrl = "finalBackURL"
 
 	//already proxying by default grpc-gateway behaviour:
 	//queryParams, CASE SENSITIVE

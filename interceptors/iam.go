@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const SetCookie = "Set-Cookie"
+
 type IAMInterceptor struct {
 	IAMClient    *iam_client.IamClient
 	logger       *zap.Logger
@@ -38,10 +40,10 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 		i.logger.Error("can't get metadata FromIncomingContext")
 		return handler(ctx, req)
 	}
-	i.logger.Info("metadata :", zap.Any("ParamName_RequestURI", md[http_mapping.ParamName_RequestURI]))
-	i.logger.Info("metadata :", zap.Any("ParamName_BackURL", md[http_mapping.ParamName_BackURL]))
-	i.logger.Info("metadata :", zap.Any("ParamName_Host", md[http_mapping.ParamName_Host]))
-	i.logger.Info("metadata :", zap.Any("ParamName_FinalBackUrl", md[strings.ToLower(http_mapping.ParamName_FinalBackUrl)]))
+	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_RequestURI, md[http_mapping.ParamName_RequestURI]))
+	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_BackURL, md[http_mapping.ParamName_BackURL]))
+	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Host, md[http_mapping.ParamName_Host]))
+	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_FinalBackUrl, md[strings.ToLower(http_mapping.ParamName_FinalBackUrl)]))
 	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Referer, md[http_mapping.ParamName_Referer]))
 	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_XOriginalRequestURI, md[http_mapping.ParamName_XOriginalRequestURI]))
 	i.logger.Info("metadata :", zap.Any(http_mapping.ParamName_Code, md[http_mapping.ParamName_Code]))
@@ -247,9 +249,9 @@ func setUserCookies(md metadata.MD, parsedToken iam_client.IAMGetTokenIdResponse
 	// Helper function to create cookie string
 
 	// Set cookies in metadata
-	md.Append("Set-Cookie", createCookie(http_mapping.CookieName_UserEmail, parsedToken.UserEmail, parsedToken.Ttl, false))
-	md.Append("Set-Cookie", createCookie(http_mapping.CookieName_UserName, parsedToken.UserName, parsedToken.Ttl, false))
-	md.Append("Set-Cookie", createCookie(http_mapping.CookieName_TokenId, parsedToken.Id, parsedToken.Ttl, true))
+	md.Append(SetCookie, createCookie(http_mapping.CookieName_UserEmail, parsedToken.UserEmail, parsedToken.Ttl, false))
+	md.Append(SetCookie, createCookie(http_mapping.CookieName_UserName, parsedToken.UserName, parsedToken.Ttl, false))
+	md.Append(SetCookie, createCookie(http_mapping.CookieName_TokenId, parsedToken.Id, parsedToken.Ttl, true))
 
 	return md
 }
