@@ -51,13 +51,13 @@ const (
 	//HEADERS ARE CASE INSENSITIVE BY HTTP PROTOCOL, SO ALWAYS USE strings.ToLower WHEN PUTTING AND ACCESSING HEADERS FROM METADATA
 	ParamName_XAccessToken        = "x-access-token"
 	ParamName_XAccessKey          = "x-access-key"
-	ParamName_Host                = "host"
 	ParamName_XOriginalRequestURI = "x-original-request-uri"
 
-	//queryParams, CASE SENSITIVE
 	ParamName_FinalBackUrl = "finalBackUrl"
 
 	//already proxying by default grpc-gateway behaviour:
+	//queryParams, CASE SENSITIVE
+	ParamName_Host       = "x-forwarded-host"
 	ParamName_RequestURI = "requesturi"
 	ParamName_Referer    = "grpcgateway-referer"
 	ParamName_Cookies    = "grpcgateway-cookie"
@@ -68,7 +68,7 @@ const (
 )
 
 var (
-	HeaderParams = []string{ParamName_Host, ParamName_XOriginalRequestURI, ParamName_XAccessKey, ParamName_XAccessToken}
+	HeaderParams = []string{ParamName_XOriginalRequestURI, ParamName_XAccessKey, ParamName_XAccessToken}
 )
 
 type getTokenParams struct {
