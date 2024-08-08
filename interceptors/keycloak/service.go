@@ -53,7 +53,7 @@ const (
 	ParamName_Host                = "host"
 	ParamName_XOriginalRequestURI = "x-original-request-uri"
 
-	ParamName_FinalBackUrl = "final_backurl"
+	ParamName_FinalBackUrl = "finalBackUrl"
 
 	//already proxying by default grpc-gateway behaviour:
 	ParamName_RequestURI = "requesturi"

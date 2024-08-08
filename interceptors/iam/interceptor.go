@@ -77,10 +77,9 @@ func (i *Interceptor) IamInterceptorFunc(ctx context.Context, req interface{}, i
 		return returnStatus, returnStatus.Err()
 	}
 
-	// есть ли id токена в куке
 	tokenIdArr := GetFromCookie(ctx, md, keycloak.CookieName_TokenId)
+	// id в куке нет, дергаем ручку IAM getAuthLink и отдаем 401 со ссылкой в ответе
 	if tokenIdArr == "" {
-		// Куки нет, дергаем ручку IAM getAuthLink и отдаем 401 со ссылкой в ответе
 		authLinkResponse, err := i.IAMClient.GetAuthLink(backURL)
 		if err != nil {
 			return status.New(codes.Internal, "can't GetAuthLink"), nil
@@ -271,14 +270,14 @@ func (i *Interceptor) getBackURL(md metadata.MD) (string, error) {
 	}
 
 	// URL текущего запроса к АПИ, на него надо будет вернуть пользователя после успешной аутентифицикации в IAM
-	requestURL := i.getRequestURL(md)
-	if strings.Contains(requestURL, "?") {
-		requestURL += "&finalBackURL=" + url.QueryEscape(finalBackURL)
+	backUrl := i.getRequestURL(md)
+	if strings.Contains(backUrl, "?") {
+		backUrl += "&finalBackURL=" + url.QueryEscape(finalBackURL)
 	} else {
-		requestURL += "?finalBackURL=" + url.QueryEscape(finalBackURL)
+		backUrl += "?finalBackURL=" + url.QueryEscape(finalBackURL)
 	}
 
-	return requestURL, nil
+	return backUrl, nil
 }
 
 // getRequestURL возвращает URL текущего запроса АПИ. На него надо будет вернуть
