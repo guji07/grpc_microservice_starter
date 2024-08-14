@@ -13,12 +13,30 @@ func GrpcToHTTPCodesMapping(code codes.Code) int {
 	switch code {
 	case codes.InvalidArgument:
 		return http.StatusBadRequest
+	case codes.DeadlineExceeded:
+		return http.StatusRequestTimeout
 	case codes.NotFound:
+		return http.StatusNotFound
+	case codes.AlreadyExists:
+		return http.StatusConflict
+	case codes.PermissionDenied:
+		return http.StatusForbidden
+	case codes.ResourceExhausted:
+		return http.StatusTooManyRequests
+	case codes.FailedPrecondition:
+		return http.StatusPreconditionFailed
+	case codes.Aborted:
+		return http.StatusServiceUnavailable
+	case codes.OutOfRange:
+		return http.StatusBadRequest
+	case codes.Unimplemented:
 		return http.StatusNotFound
 	case codes.Internal:
 		return http.StatusInternalServerError
-	case codes.AlreadyExists:
-		return http.StatusBadRequest
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
+	case codes.DataLoss:
+		return http.StatusInternalServerError
 	}
 	return http.StatusOK
 }

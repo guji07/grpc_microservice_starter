@@ -21,6 +21,8 @@ import (
 
 const SetCookie = "Set-Cookie"
 
+var ErrEmptyReferer = errors.New("Empty referer")
+
 type IAMInterceptor struct {
 	IAMClient    *iam_client.IamClient
 	logger       *zap.Logger
@@ -38,7 +40,6 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		i.logger.Error("can't get metadata FromIncomingContext")
-		return handler(ctx, req)
 	}
 	/*i.logger.Info("metadata: ", zap.Any(http_mapping.ParamName_RequestURI, md[http_mapping.ParamName_RequestURI]),
 		zap.Any(http_mapping.ParamName_BackURL, md[http_mapping.ParamName_BackURL]),
@@ -85,7 +86,7 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 	backURL, err := i.getBackURL(md)
 	if err != nil || backURL == "" {
 		returnStatus := status.New(codes.Internal, "can't get backURL")
-		i.logger.Error("can't get backURL")
+		i.logger.Error("can't getBackURL")
 		return returnStatus, returnStatus.Err()
 	}
 
@@ -103,13 +104,14 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 	// Кука есть - запрашиваем у IAM пермишены по ручке getTokenPermissions
 	tokenId, err := url.QueryUnescape(tokenIdArr)
 	if err != nil {
-		i.logger.Error("can't QueryUnescape tokenId %s", zap.Error(err))
-		return status.New(codes.Internal, "can't QueryUnescape tokenId %s"), nil
+		i.logger.Error("can't QueryUnescape tokenId", zap.Error(err))
+		return status.New(codes.Internal, "incorrectly encoded tokenId %s"), nil
 	}
 
 	resp, err := i.IAMClient.GetTokenPermissions(tokenId, i.serviceId, backURL)
 	if err != nil {
-		return status.New(codes.Internal, "can't GetTokenPermissions"), nil
+		i.logger.Error("GetTokenPermissions", zap.Error(err))
+		return status.New(codes.Internal, "can't get permissions from iam with provided token"), nil
 	}
 
 	// Отправляем юзера на аутентификацию в IAM
@@ -169,7 +171,7 @@ func (i *IAMInterceptor) AuthAccessKey(ctx context.Context, req interface{}, han
 	var accessKey string
 	accessKeys := md.Get(http_mapping.ParamName_XAccessKey)
 	if len(accessKeys) < 1 {
-		return false, nil
+		return false, status.Error(codes.Internal, "can't check access key permissions")
 	}
 	accessKey = accessKeys[0]
 	if accessKey == "" {
@@ -182,6 +184,7 @@ func (i *IAMInterceptor) AuthAccessKey(ctx context.Context, req interface{}, han
 	// Запрашиваем у IAM пермишены
 	resp, err := i.IAMClient.GetAccessKeyPermissions(accessKey, i.serviceId)
 	if err != nil || resp.HttpStatus != http.StatusOK {
+		i.logger.Warn("can't GetAccessKeyPermissions", zap.Error(err))
 		return processed, status.Error(codes.Internal, "can't check access key permissions")
 	}
 
@@ -264,8 +267,6 @@ func createCookie(name, value string, maxage int, httpOnly bool) string {
 	}
 	return cookie
 }
-
-var ErrEmptyReferer = errors.New("Empty referer")
 
 // getBackURL формирует backURL, на который IAM вернет пользователя после успешной аутентифицикации
 // Это ссылка на ручку вида /api/v1/REQUEST?finalBackURL=<finalBackURL>
