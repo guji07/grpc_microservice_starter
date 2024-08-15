@@ -60,7 +60,7 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 		if err != nil {
 			return nil, err
 		}
-		return handler(ctx, req)
+		return handler(metadata.NewIncomingContext(ctx, md), req)
 	}
 
 	code := md[http_mapping.ParamName_Code]
@@ -121,9 +121,8 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 
 	// Все хорошо, кладем права в контекст и идем дальше
 	if resp.HttpStatus == http.StatusOK {
-		outcomingMd, _ := metadata.FromOutgoingContext(ctx)
-		outcomingMd.Set(http_mapping.MetadataName_IAMPermissions, resp.Permissions...)
-		outcomingMd.Set(http_mapping.MetadataName_IAMUserId, resp.UserId)
+		md.Set(http_mapping.MetadataName_IAMPermissions, resp.Permissions...)
+		md.Set(http_mapping.MetadataName_IAMUserId, resp.UserId)
 
 		// Добавляем содержимое куки CookieName_UserEmail как userId
 		//var userEmail string
@@ -139,7 +138,7 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 		//}
 		//md.Set(http_mapping.MetadataName_IAMUserId, userEmail)
 
-		return handler(ctx, req)
+		return handler(metadata.NewIncomingContext(ctx, md), req)
 	}
 
 	// Получен не 200 и не 401, отдаем статус как есть
