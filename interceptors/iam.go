@@ -167,10 +167,9 @@ func GetFromCookie(ctx context.Context, md metadata.MD, cookieName string) strin
 // Если хедер присутствуют, полностью берет обработку на себя, в этом случае возвращает true
 func (i *IAMInterceptor) AuthAccessKey(ctx context.Context, req interface{}, handler grpc.UnaryHandler) (processed bool, err error) {
 	// Проверяем наличие хедеров X-Access-Key
-	incomingMd, _ := metadata.FromIncomingContext(ctx)
-	outcomingMd, _ := metadata.FromOutgoingContext(ctx)
+	md, _ := metadata.FromIncomingContext(ctx)
 	var accessKey string
-	accessKeys := incomingMd.Get(http_mapping.ParamName_XAccessKey)
+	accessKeys := md.Get(http_mapping.ParamName_XAccessKey)
 	if len(accessKeys) < 1 {
 		return false, status.Error(codes.Internal, "can't check access key permissions")
 	}
@@ -189,8 +188,8 @@ func (i *IAMInterceptor) AuthAccessKey(ctx context.Context, req interface{}, han
 		return processed, status.Error(codes.Internal, "can't check access key permissions")
 	}
 
-	outcomingMd.Set("iam_permissions", resp.Permissions...)
-	outcomingMd.Set("iam_user_id", resp.UserId)
+	md.Set("iam_permissions", resp.Permissions...)
+	md.Set("iam_user_id", resp.UserId)
 	return processed, nil
 }
 
