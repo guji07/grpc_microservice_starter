@@ -56,7 +56,8 @@ func (i *IAMInterceptor) IamInterceptorFunc(ctx context.Context, req interface{}
 	}
 
 	// 1. Аутентификация приложения по ключу доступа (app2app)
-	if processed, err := i.AuthAccessKey(ctx, req, handler); processed {
+	if outcomingMd, processed, err := i.AuthAccessKey(ctx, req, handler); processed {
+		md = outcomingMd
 		if err != nil {
 			return nil, err
 		}
@@ -165,13 +166,13 @@ func GetFromCookie(ctx context.Context, md metadata.MD, cookieName string) strin
 
 // AuthAccessKey аутентифицирует приложение по хедеру X-Access-Key
 // Если хедер присутствуют, полностью берет обработку на себя, в этом случае возвращает true
-func (i *IAMInterceptor) AuthAccessKey(ctx context.Context, req interface{}, handler grpc.UnaryHandler) (processed bool, err error) {
+func (i *IAMInterceptor) AuthAccessKey(ctx context.Context, req interface{}, handler grpc.UnaryHandler) (md metadata.MD, processed bool, err error) {
 	// Проверяем наличие хедеров X-Access-Key
-	md, _ := metadata.FromIncomingContext(ctx)
+	md, _ = metadata.FromIncomingContext(ctx)
 	var accessKey string
 	accessKeys := md.Get(http_mapping.ParamName_XAccessKey)
 	if len(accessKeys) < 1 {
-		return false, status.Error(codes.Internal, "can't check access key permissions")
+		return md, false, status.Error(codes.Internal, "can't check access key permissions")
 	}
 	accessKey = accessKeys[0]
 	if accessKey == "" {
@@ -185,12 +186,12 @@ func (i *IAMInterceptor) AuthAccessKey(ctx context.Context, req interface{}, han
 	resp, err := i.IAMClient.GetAccessKeyPermissions(accessKey, i.serviceId)
 	if err != nil || resp.HttpStatus != http.StatusOK {
 		i.logger.Warn("can't GetAccessKeyPermissions", zap.Error(err))
-		return processed, status.Error(codes.Internal, "can't check access key permissions")
+		return md, processed, status.Error(codes.Internal, "can't check access key permissions")
 	}
 
 	md.Set("iam_permissions", resp.Permissions...)
 	md.Set("iam_user_id", resp.UserId)
-	return processed, nil
+	return md, processed, nil
 }
 
 // returnRedirectJSON creates an UnauthorizedResponse with a redirect URL.
